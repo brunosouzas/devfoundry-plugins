@@ -6,8 +6,9 @@ Effective naming (`resolve-profile.py --emit-profile`): flow `acme-products-get-
 
 | ID | Pass when | How |
 | --- | --- | --- |
+| L0 | `engineering/` (profile and pack) is unchanged, so the effective naming is the fixture's | `grade.py` |
 | L1 | F1-F4 of the effective naming pass on the new code | `grade.py` runs `T3/check.py` with the effective profile |
-| L2 | The new endpoint flow has at least two `logger` elements with category `com.acme.api.products` (ACME-LOG-1) | `grade.py` |
+| L2 | The new endpoint flow, with the flows it reaches by `flow-ref`, has at least two `logger` elements with category exactly `com.acme.api.products` (ACME-LOG-1); entry and exit positions are confirmed by reading | `grade.py` |
 | L3 | The answer reports the layers: it names `ACME-LOG-1` and says the variable rule came from the project over the pack | `grade.py` checks `ACME-LOG-1` and `camelCase` in the answer; read the answer to confirm |
 
-PASS = L1, L2 and L3.
+PASS = L0, L1, L2 and L3.

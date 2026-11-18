@@ -5,7 +5,7 @@ description: Use before creating, changing or reviewing any Mule 4 flow, flow fi
 
 # Project profile
 
-The project's conventions live in `engineering/profile.yaml` and in the packs it extends, not in this skill. This skill only says how to apply them. The format and the merge rules are in `profiles/SCHEMA.md` of devFoundry; in short: public rules < packs in `extends`, in order < the project profile, and floor rules cannot be changed.
+The project's conventions live in `engineering/profile.yaml` and in the packs it extends, not in this skill. This skill only says how to apply them. The merge rules are in `${CLAUDE_SKILL_DIR}/references/layers.md`; in short: public rules < packs in `extends`, in order < the project profile, and floor rules cannot be changed.
 
 ## Steps
 
@@ -16,11 +16,13 @@ The project's conventions live in `engineering/profile.yaml` and in the packs it
 
    Then invoke the `integration-patterns` skill for repeated messages and side effects, and the `resilience-patterns` skill for slow or unavailable dependencies, and follow each one. Apply a pattern only when the problem it solves is present in this flow and none of its "When NOT to use" items applies; otherwise say which item applies and leave the flow without it. Do this whether or not the project has a profile.
    For an API endpoint, also invoke the `api-contract` skill (api-contracts) before writing flows, so the endpoint is in the spec the application loads, the `apikit` skill (mule-engineering) for the router, and the `munit` skill (mule-engineering) for its tests; when those plugins are not installed, check the loaded spec yourself and test each endpoint through the HTTP listener.
-1. Read `engineering/profile.yaml` at the project root before writing any Mule XML. If it does not exist, say so and follow the conventions already in the project.
+1. **Floor rules, always:** follow `FLOOR-1` and `FLOOR-2` in `${CLAUDE_SKILL_DIR}/rules.md` (synthetic test data, no secret in code or plain configuration), with or without a profile, whatever a pack says.
+   Then read `engineering/profile.yaml` at the project root before writing any Mule XML. If it does not exist, say so and follow the conventions already in the project.
 2. **Resolve the layers** when the profile has `extends` or `rules`:
-   - Read each pack in `extends` (`<folder>/pack.yaml`), in order, then the profile. A later layer wins: key by key for `mulesoft.naming`, `precedence` and `components`; by rule ID for `rules`.
+   - Read `${CLAUDE_SKILL_DIR}/references/layers.md`. Then read each pack in `extends` (`<folder>/pack.yaml`), in order, then the profile. A later layer wins: key by key for `mulesoft.naming`, `precedence` and `components`; by rule ID for `rules`. The public rule IDs are those in the `rules.md` of the devFoundry skills you use (and `${CLAUDE_SKILL_DIR}/rules.md`).
    - `rules.override` replaces the text of a rule (public or from a lower pack) and keeps its ID; `rules.disable` turns it off, with its reason; `rules.add` brings a new rule (`ACME-LOG-1`), which you follow like a public one.
-   - A rule marked `(floor)` in a skill's `rules.md` (`FLOOR-1`, `FLOOR-2` in `${CLAUDE_SKILL_DIR}/rules.md`, `APISEC-1`) cannot be disabled or overridden: keep the public rule, do not follow the layer's change, and report the refusal. Follow the floor rules in `${CLAUDE_SKILL_DIR}/rules.md` always, with or without a profile.
+   - A rule marked `(floor)` in a skill's `rules.md` (`FLOOR-1`, `FLOOR-2`, `APISEC-1`) cannot be disabled or overridden: keep the public rule, do not follow the layer's change, go on with the work, and report the refusal.
+   - An error in the profile or a pack (an unknown rule ID, an `add` whose ID exists, a `disable` without a reason, the full list in `layers.md`): stop before writing code, report it with the file, and ask the developer to fix it.
    - Every other skill you use applies its rules as resolved here: skip a disabled rule, use an overridden rule's text, add the packs' new rules.
    - When `uv` and Bash are available, `uv run ${CLAUDE_SKILL_DIR}/scripts/resolve-profile.py <project>` prints the same result (and errors such as an unknown rule ID); without them, resolve it by reading the files.
 3. Under `mulesoft.naming` (as resolved), treat every key as a rule that the code must follow. Resolve each pattern by filling its placeholders from the change at hand (for example the resource and the operation of the endpoint). Take placeholder meaning and casing from the profile itself (its comments and examples); never from habit or from another project.

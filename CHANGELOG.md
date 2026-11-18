@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Added
-- Profile layers (`profiles/SCHEMA.md` v1, `apiVersion: devfoundry/v1`): `extends` lists company or personal rules packs (`kind: RulesPack`, in `engineering/packs/<name>/`), and `rules` overrides, disables or adds rules by ID. Public < packs in order < project. Floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`) cannot be disabled or overridden; an attempt is refused and reported. v0 profiles still read.
+- Profile layers (`profiles/SCHEMA.md` v1, `apiVersion: devfoundry/v1`): `extends` lists company or personal rules packs (`kind: RulesPack`, in `engineering/packs/<name>/`), and `rules` overrides, disables or adds rules by ID. Public < packs in order < project. Floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`) cannot be disabled or overridden; an attempt is refused and reported. v0 profiles still read. The merge rules ship with the plugin in `project-profile/references/layers.md`. Marking APISEC-1 as floor would be a MAJOR change from 1.0 on; under 0.x it is a minor bump.
 - `engineering-profile` 0.7.0: `project-profile` resolves the layers and reports every changed or refused rule; floor rules in `project-profile/rules.md`; `scripts/resolve-profile.py` (validation and the rules in effect, with tests). `api-contracts` 0.2.0 and `mule-engineering` 0.2.0 apply their rules as resolved.
 - Synthetic example pack `profiles/examples/packs/acme-mule/`; eval cases T8 (a pack and a project override) and T9 (a pack tries to disable a floor rule).
 - `docs/scope.md`: the three layers (public skills, personal and company rules and agents), what is in and out of scope, and the order of the next pieces.

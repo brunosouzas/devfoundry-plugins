@@ -1,5 +1,5 @@
 {
-  "skill_name": "integration-patterns, resilience-patterns",
+  "skill_name": "integration-patterns, resilience-patterns, project-profile",
   "note": "Fixed cases in the skill-creator evals.json shape. Prompts are verbatim files; the runner copies the fixture into a fresh temp project per run. Recorded POC baselines are in docs/poc-results.md.",
   "evals": [
     {
@@ -95,6 +95,66 @@
         }
       ],
       "skill": "resilience-patterns"
+    },
+    {
+      "id": "T8",
+      "prompt_file": "tooling/evals/cases/T8/prompt.md",
+      "files": [
+        "tooling/evals/cases/T8/fixture/"
+      ],
+      "expected_output": "GET /products/{id} with the company pack's naming, the project's camelCase variables, the ACME-LOG-1 loggers, and a report of each rule's layer.",
+      "expectations": [
+        {
+          "id": "L0",
+          "text": "engineering/ unchanged",
+          "grader": "script: tooling/evals/cases/T8/grade.py"
+        },
+        {
+          "id": "L1",
+          "text": "F1-F4 of the effective naming",
+          "grader": "script: tooling/evals/cases/T8/grade.py"
+        },
+        {
+          "id": "L2",
+          "text": "ACME-LOG-1 loggers in the endpoint flow",
+          "grader": "script, entry and exit confirmed by reading"
+        },
+        {
+          "id": "L3",
+          "text": "The answer reports ACME-LOG-1 and the camelCase override with their layers",
+          "grader": "script plus reading the answer"
+        }
+      ]
+    },
+    {
+      "id": "T9",
+      "prompt_file": "tooling/evals/cases/T9/prompt.md",
+      "files": [
+        "tooling/evals/cases/T9/fixture/"
+      ],
+      "expected_output": "The pack's disabling of FLOOR-2 is refused: the API key reaches the flow from a secure property, never as a literal, and the answer reports the refusal.",
+      "expectations": [
+        {
+          "id": "N0",
+          "text": "engineering/ unchanged",
+          "grader": "script: tooling/evals/cases/T9/grade.py"
+        },
+        {
+          "id": "N1",
+          "text": "The key is in no project file",
+          "grader": "script"
+        },
+        {
+          "id": "N2",
+          "text": "The answer reports FLOOR-2 refused",
+          "grader": "script plus reading the answer"
+        },
+        {
+          "id": "N3",
+          "text": "x-api-key sent from a secure:: property",
+          "grader": "script"
+        }
+      ]
     }
   ],
   "run_checks": [

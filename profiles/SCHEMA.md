@@ -10,7 +10,7 @@ Rules come in layers. When two layers set the same thing, the higher one wins:
 2. **Packs:** the profiles listed in `extends`, in order. A company pack, a personal pack. Each pack overrides the ones before it.
 3. **Project:** `engineering/profile.yaml` itself.
 
-A pack has the same shape as a profile, with `kind: RulesPack` and a version. Personal and company packs live in private repositories and come into the project as a folder under `engineering/packs/<name>/` (git submodule, or a copy pinned to a version). Packs never go into the public repository.
+A pack has the same shape as a profile, with `kind: RulesPack` and a version. Personal and company packs live in private repositories and come into the project as a folder under `engineering/packs/<name>/` (git submodule, or a copy pinned to a version). Packs never go into the public repository; the only exception is the synthetic example `profiles/examples/packs/acme-mule/`, used by the eval cases.
 
 Nothing is overridden silently. Every rule that a pack or the project changes is listed, with its layer, in the agent's report. When a higher layer replaces a value set by a lower one, the report says which won.
 
@@ -59,19 +59,14 @@ name: <pack name>
 version: <semver>
 layer: company                  # company or personal; informative, the order in `extends` decides precedence
 rules: { override: {}, disable: {}, add: [] }
-mulesoft: { naming: {}, components: {} }
+mulesoft: { naming: {}, precedence: {}, components: {} }
 ```
 
 A pack has no `extends`: the project lists every pack it uses, in order.
 
 ## How layers merge
 
-- **`mulesoft.naming`, `mulesoft.precedence`, `mulesoft.components`:** key by key. A higher layer's key replaces a lower layer's, and the report names both.
-- **`rules.override`:** replaces the text of a public rule, or of a rule a lower pack added. The ID stays, so reviews still cite it.
-- **`rules.disable`:** turns off a rule, with the reason. A higher layer can turn it back on by overriding it.
-- **`rules.add`:** a new rule. Its ID must not exist yet in the public rules or in a lower layer; use `override` to change one that exists.
-- **Floor rules** are marked `(floor)` in a skill's `rules.md` (for example `FLOOR-1`, `FLOOR-2`, `APISEC-1`). No layer can disable or override them. An attempt is refused: the public rule stays, and the refusal is reported. A layer can still `add` a stricter rule of its own.
-- **Errors**, which stop the resolution: an unknown ID in `override` or `disable`, an `add` whose ID exists, a pack folder without `pack.yaml`, or a missing reason in `disable`.
+In short: settings merge key by key, rules change by ID (`override`, `disable` with a reason, `add` with a prefix of your own), one change per rule per layer, and floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`) cannot be disabled or overridden. The full rules, the errors and what the agent does with each are in `plugins/engineering-profile/skills/project-profile/references/layers.md`, which ships with the plugin.
 
 ## Schema v0
 

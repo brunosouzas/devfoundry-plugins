@@ -29,7 +29,7 @@
     },
     {
       "name": "engineering-profile",
-      "description": "Applies the project's engineering/profile.yaml (naming, precedence over legacy code) and makes each Mule 4 flow's integration decisions explicit before writing code.",
+      "description": "Applies the project's engineering/profile.yaml and the rules packs it extends (naming, precedence over legacy code, rules overridden or added by ID, floor rules), and makes each Mule 4 flow's integration decisions explicit before writing code.",
       "author": {
         "name": "Bruno Souza"
       },
