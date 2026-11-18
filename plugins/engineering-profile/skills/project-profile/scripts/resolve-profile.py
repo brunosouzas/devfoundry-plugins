@@ -3,17 +3,19 @@
 # requires-python = ">=3.10"
 # dependencies = ["pyyaml>=6"]
 # ///
-"""Resolve a project's engineering profile and its packs into the rules in effect (profiles/SCHEMA.md).
+"""Resolve a project's engineering profile and its packs into the rules in effect.
 
-Usage: resolve-profile.py [project dir] [--rules-root DIR]... [--json] [--emit-profile] [--strict]
+The merge rules are in ../references/layers.md. Usage:
+  resolve-profile.py [project dir] [--rules-root DIR]... [--json] [--emit-profile] [--strict]
   project dir     the project root that holds engineering/profile.yaml (default: .)
-  --rules-root    a folder searched for rules.md files with the public rules; repeatable
-                  (default: the plugins/ folder this script ships in)
+  --rules-root    a folder searched for rules.md files with the public rules; repeatable. Default: every devFoundry
+                  plugin next to this one (the repository's plugins/ folder, or the latest installed version of each
+                  plugin of the same marketplace)
   --json          print the result as JSON instead of the report
-  --emit-profile  print only the effective profile (mulesoft section) as YAML, for graders
+  --emit-profile  print only the effective mulesoft settings as YAML (nothing when there are errors)
   --strict        exit 1 when a change was refused (a floor rule), not only on errors
 
-Exit 0 = resolved; 1 = errors (or a refusal with --strict); 2 = usage or missing file.
+Exit 0 = resolved; 1 = errors (or a refusal with --strict); 2 = usage or missing profile.
 Run with `uv run resolve-profile.py`, or with any python3 that has PyYAML.
 """
 import argparse, json, re, sys
@@ -24,15 +26,37 @@ try:
 except ImportError:  # pragma: no cover
     sys.exit("resolve-profile.py needs PyYAML: run it with `uv run resolve-profile.py` or `pip install pyyaml`.")
 
-RULE_LINE = re.compile(r"^- \*\*([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d+)\*\*(\s*\(floor\))?\s*(.*)$")
-NEW_ID = re.compile(r"^[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d+$")
+ID = r"[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d+"
+RULE_LINE = re.compile(rf"^- \*\*({ID})\*\*(\s*\(floor\))?\s*(.*)$")
+NEW_ID = re.compile(rf"^{ID}$")
 VERSIONS = {"engineering.poc/v0", "devfoundry/v1"}
 MULE_SECTIONS = ("naming", "precedence", "components")
 
 
-def default_rules_root():
-    # .../plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py -> .../plugins
-    return Path(__file__).resolve().parents[4]
+def prefix(rule_id):
+    return rule_id.rsplit("-", 1)[0]
+
+
+def default_rules_roots(script=None):
+    """The plugin folders whose rules.md files hold the public rules.
+
+    Repository or --plugin-dir layout: <plugins>/<plugin>/skills/... -> every <plugin> under <plugins>.
+    Installed layout: <cache>/<marketplace>/<plugin>/<version>/skills/... -> the latest <version> of each <plugin>.
+    """
+    plugin_root = Path(script or __file__).resolve().parents[3]
+    parent = plugin_root.parent
+    try:
+        name = json.loads((plugin_root / ".claude-plugin/plugin.json").read_text()).get("name")
+    except (OSError, ValueError):
+        name = None
+    if plugin_root.name == name or parent.name == "plugins":  # the folder is named after the plugin: not a version
+        return sorted(d for d in parent.iterdir() if (d / ".claude-plugin/plugin.json").is_file())
+    roots = []
+    for plugin in sorted(d for d in parent.parent.iterdir() if d.is_dir()):
+        versions = [v for v in plugin.iterdir() if (v / ".claude-plugin/plugin.json").is_file()]
+        if versions:
+            roots.append(max(versions, key=lambda v: v.stat().st_mtime))
+    return roots or [plugin_root]
 
 
 def public_rules(roots):
@@ -54,30 +78,68 @@ def load(path, kind, errors):
         errors.append(f"{path}: not valid YAML ({e})"); return None
     if not isinstance(data, dict):
         errors.append(f"{path}: not a mapping"); return None
+    bad = False
     if data.get("apiVersion") not in VERSIONS:
-        errors.append(f"{path}: apiVersion must be one of {sorted(VERSIONS)}, got {data.get('apiVersion')!r}")
+        errors.append(f"{path}: apiVersion must be one of {sorted(VERSIONS)}, got {data.get('apiVersion')!r}"); bad = True
     if data.get("kind") != kind:
-        errors.append(f"{path}: kind must be {kind}, got {data.get('kind')!r}")
-    return data
+        errors.append(f"{path}: kind must be {kind}, got {data.get('kind')!r}"); bad = True
+    return None if bad else data
+
+
+def mapping(value, where, errors):
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        errors.append(f"{where} must be a mapping, got {type(value).__name__}"); return {}
+    return value
+
+
+def check_layer_shape(name, data, errors):
+    """Type-check one layer; return (mulesoft sections, add list, override map, disable map)."""
+    mule = mapping(data.get("mulesoft"), f"{name}: mulesoft", errors)
+    sections = {s: mapping(mule.get(s), f"{name}: mulesoft.{s}", errors) for s in MULE_SECTIONS}
+    rules = mapping(data.get("rules"), f"{name}: rules", errors)
+    add = rules.get("add") or []
+    if not isinstance(add, list):
+        errors.append(f"{name}: rules.add must be a list of rules"); add = []
+    override = mapping(rules.get("override"), f"{name}: rules.override", errors)
+    disable = mapping(rules.get("disable"), f"{name}: rules.disable", errors)
+    seen = {}
+    for action, ids in (("add", [i.get("id") for i in add if isinstance(i, dict)]), ("override", override), ("disable", disable)):
+        for rid in ids:
+            seen.setdefault(rid, []).append(action)
+    for rid, actions in seen.items():
+        if len(actions) > 1:
+            errors.append(f"{name}: {rid} appears in {' and '.join(actions)}; one change per rule per layer")
+    return sections, add, override, disable
 
 
 def resolve(project, roots):
-    project = Path(project)
+    project = Path(project).resolve()
     errors, refused, changes, replaced = [], [], [], []
     profile_path = project / "engineering/profile.yaml"
     if not profile_path.is_file():
         return {"errors": [f"{profile_path}: not found"], "missing": True}
     rules = public_rules(roots)
+    public_prefixes = {prefix(r) for r in rules}
     profile = load(profile_path, "EngineeringProfile", errors)
     if profile is None:
         return {"errors": errors}
-    v0 = profile.get("apiVersion") == "engineering.poc/v0"
-    if v0 and ("extends" in profile or "rules" in profile):
+    if profile.get("apiVersion") == "engineering.poc/v0" and ("extends" in profile or "rules" in profile):
         errors.append(f"{profile_path}: extends and rules need apiVersion devfoundry/v1")
 
-    layers = []
-    for entry in profile.get("extends") or []:
-        pack_path = project / str(entry) / "pack.yaml"
+    layers, seen_packs = [], set()
+    extends = profile.get("extends") or []
+    if not isinstance(extends, list):
+        errors.append("extends must be a list of pack folders"); extends = []
+    for entry in extends:
+        folder = (project / str(entry)).resolve()
+        if project not in folder.parents:
+            errors.append(f"extends {entry}: a pack folder must be inside the project (engineering/packs/<name>)"); continue
+        if folder in seen_packs:
+            errors.append(f"extends {entry}: listed twice"); continue
+        seen_packs.add(folder)
+        pack_path = folder / "pack.yaml"
         if not pack_path.is_file():
             errors.append(f"extends {entry}: no pack.yaml in that folder"); continue
         pack = load(pack_path, "RulesPack", errors)
@@ -85,48 +147,54 @@ def resolve(project, roots):
             continue
         if "extends" in pack:
             errors.append(f"{pack_path}: a pack has no extends; list every pack in the project profile")
+        if not pack.get("name") or not pack.get("version"):
+            errors.append(f"{pack_path}: a pack needs a name and a version")
         layers.append((f"pack {pack.get('name', entry)}@{pack.get('version', '?')}", pack))
     layers.append(("project", profile))
 
     mule = {s: {} for s in MULE_SECTIONS}
     origin = {s: {} for s in MULE_SECTIONS}
     for name, data in layers:
+        sections, add, override, disable = check_layer_shape(name, data, errors)
         for section in MULE_SECTIONS:
-            for key, value in ((data.get("mulesoft") or {}).get(section) or {}).items():
+            for key, value in sections[section].items():
                 if key in mule[section] and mule[section][key] != value:
                     replaced.append({"key": f"mulesoft.{section}.{key}", "layer": name, "value": value,
                                      "was": mule[section][key], "was_layer": origin[section][key]})
                 mule[section][key] = value; origin[section][key] = name
-        r = data.get("rules") or {}
-        for item in r.get("add") or []:
-            rid = (item or {}).get("id", "")
-            if not NEW_ID.match(str(rid)):
+        for item in add:
+            if not isinstance(item, dict):
+                errors.append(f"{name}: each rules.add item is a mapping with id, text, why and check"); continue
+            rid = str(item.get("id", ""))
+            if not NEW_ID.match(rid):
                 errors.append(f"{name}: add id {rid!r} is not of the form PREFIX-N"); continue
             if rid in rules:
                 errors.append(f"{name}: add {rid} exists already ({rules[rid]['layer']}); use override"); continue
-            missing = [k for k in ("text", "why", "check") if not item.get(k)]
+            if prefix(rid) in public_prefixes:
+                errors.append(f"{name}: add {rid} uses the public prefix {prefix(rid)}; use a prefix of your own"); continue
+            missing = [k for k in ("text", "why", "check") if not isinstance(item.get(k), str) or not item[k].strip()]
             if missing:
                 errors.append(f"{name}: add {rid} misses {', '.join(missing)}"); continue
             rules[rid] = {"text": item["text"], "floor": False, "layer": name, "source": name, "status": "active"}
             changes.append({"id": rid, "action": "add", "layer": name})
-        for rid, spec in (r.get("override") or {}).items():
+        for rid, spec in override.items():
             text = spec.get("text") if isinstance(spec, dict) else spec
             if rid not in rules:
                 errors.append(f"{name}: override {rid}: no such rule"); continue
             if rules[rid]["floor"]:
                 refused.append({"id": rid, "action": "override", "layer": name}); continue
-            if not text:
-                errors.append(f"{name}: override {rid} has no text"); continue
+            if not isinstance(text, str) or not text.strip():
+                errors.append(f"{name}: override {rid} needs the rule's text (a string, or a mapping with text)"); continue
             changes.append({"id": rid, "action": "override", "layer": name, "was_layer": rules[rid]["layer"]})
-            rules[rid].update(text=str(text), layer=name, status="active")
-        for rid, reason in (r.get("disable") or {}).items():
+            rules[rid].update(text=text, layer=name, status="active")
+        for rid, reason in disable.items():
             if rid not in rules:
                 errors.append(f"{name}: disable {rid}: no such rule"); continue
             if rules[rid]["floor"]:
                 refused.append({"id": rid, "action": "disable", "layer": name}); continue
-            if not reason or not str(reason).strip():
-                errors.append(f"{name}: disable {rid} needs a reason"); continue
-            changes.append({"id": rid, "action": "disable", "layer": name, "reason": str(reason)})
+            if not isinstance(reason, str) or not reason.strip():
+                errors.append(f"{name}: disable {rid} needs a reason (a string)"); continue
+            changes.append({"id": rid, "action": "disable", "layer": name, "reason": reason})
             rules[rid].update(layer=name, status="disabled")
     return {"layers": [n for n, _ in layers], "mulesoft": mule, "replaced": replaced, "changes": changes,
             "refused": refused, "errors": errors, "rules": rules}
@@ -149,6 +217,8 @@ def report(res):
             out.append(f"  {section}.{k}: {v}")
     for e in res["errors"]:
         out.append(f"ERROR {e}")
+    if res["errors"]:
+        out.append("The profile has errors: fix them before the rules above are used.")
     return "\n".join(out)
 
 
@@ -160,11 +230,14 @@ def main(argv=None):
     ap.add_argument("--emit-profile", action="store_true")
     ap.add_argument("--strict", action="store_true")
     a = ap.parse_args(argv)
-    res = resolve(a.project, [Path(p) for p in (a.rules_root or [default_rules_root()])])
+    res = resolve(a.project, [Path(p) for p in a.rules_root] if a.rules_root else default_rules_roots())
     if res.get("missing"):
         print(res["errors"][0], file=sys.stderr); return 2
     if a.emit_profile:
-        print(yaml.safe_dump({"mulesoft": res.get("mulesoft", {})}, sort_keys=False), end="")
+        if res["errors"]:
+            print("\n".join(f"ERROR {e}" for e in res["errors"]), file=sys.stderr)
+        else:
+            print(yaml.safe_dump({"mulesoft": res["mulesoft"]}, sort_keys=False), end="")
     elif a.json:
         print(json.dumps(res, indent=2))
     else:

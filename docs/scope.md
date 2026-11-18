@@ -39,7 +39,7 @@ The public layer never holds personal or company material, and never client data
 | API design (architecture) | to be decided | none | API-led layers (system, process, experience), resource modelling, non-functional requirements, design review |
 | Integration patterns | `integration-patterns` | Idempotent Receiver | Content-Based Router, Scatter-Gather, Aggregator, Dead Letter Channel |
 | Resilience patterns | `resilience-patterns` | Circuit Breaker | retry with backoff, fan-out bounds and a total time budget for N+1 calls, re-login when a session expires |
-| Layers and overrides | `engineering-profile` | naming and precedence (schema v0) | see "Next pieces", step 1 |
+| Layers and overrides | `engineering-profile` | schema v1: packs in `extends`, rules overridden, disabled or added by ID, floor rules (`references/layers.md`) | a personal preference layer above the project |
 | Measurement | `tooling/evals` | fixed cases T1b, T2, T3b, T5, T6 | the full-API case as a benchmark, CI for `verify-examples.sh` |
 
 ## Out of scope
@@ -52,7 +52,7 @@ The public layer never holds personal or company material, and never client data
 ## Next pieces, in order
 
 1. **Layers and overrides.** Extend the profile beyond naming:
-   - a precedence order (public < company < project < preference);
+   - a precedence order (public < company < project < preference). Done in schema v1 for public < packs < project; a personal pack sits in `extends` below the project, and a preference layer above the project is left for later;
    - a rules pack that adds or overrides public rules by ID, kept in a private repository the profile names;
    - a report when a company rule conflicts with a public rule, instead of a silent override.
 

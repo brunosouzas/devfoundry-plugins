@@ -1,5 +1,5 @@
 """Tests of resolve-profile.py. Run: uv run --with pyyaml python -m unittest discover -s <this folder>."""
-import importlib.util, tempfile, textwrap, unittest
+import importlib.util, json, tempfile, textwrap, unittest
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -87,8 +87,9 @@ class Resolve(unittest.TestCase):
         self.assertEqual([c["action"] for c in res["changes"]], ["add", "override", "disable"])
 
     def test_floor_rule_is_refused_not_applied(self):
-        self.pack("acme", "rules:\n  disable: {FLOOR-2: 'keys in config.yaml are simpler'}\n  override: {FLOOR-2: 'anything'}\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme]\n")
+        self.pack("acme", "rules:\n  disable: {FLOOR-2: 'keys in config.yaml are simpler'}\n")
+        self.pack("team", "rules:\n  override: {FLOOR-2: 'anything'}\n")
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme, engineering/packs/team]\n")
         res = self.run_()
         self.assertEqual(res["errors"], [])
         self.assertEqual({r["action"] for r in res["refused"]}, {"disable", "override"})
@@ -120,8 +121,60 @@ class Resolve(unittest.TestCase):
         self.assertEqual(rp.main(args + ["--strict"]), 1)
         self.assertEqual(rp.main([str(self.tmp / "nowhere")]), 2)
 
+    def test_malformed_sections_are_errors_not_crashes(self):
+        self.pack("acme", "rules:\n  disable: [CON-2]\n  add: {id: X-1}\nmulesoft: x\n")
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: engineering/packs/acme\n")
+        errs = " | ".join(self.run_()["errors"])
+        self.assertIn("extends must be a list", errs)
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme]\nrules:\n  override: {CON-2: [a]}\n")
+        errs = " | ".join(self.run_()["errors"])
+        for needle in ("rules.disable must be a mapping", "rules.add must be a list", "mulesoft must be a mapping",
+                       "override CON-2 needs the rule's text"):
+            self.assertIn(needle, errs)
+
+    def test_one_change_per_rule_per_layer(self):
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n  override: {CON-2: x}\n  disable: {CON-2: y}\n")
+        self.assertIn("CON-2 appears in override and disable", " | ".join(self.run_()["errors"]))
+
+    def test_pack_rules_on_paths_kind_and_duplicates(self):
+        self.pack("acme", "rules:\n  add: [{id: CON-99, text: t, why: w, check: c}]\n")
+        self.write("engineering/packs/wrong/pack.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n  disable: {CON-2: evil}\n")
+        (self.tmp / "outside").mkdir()
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\n"
+                   "extends: [engineering/packs/acme, engineering/packs/acme, engineering/packs/wrong, ../outside]\n")
+        res = self.run_()
+        errs = " | ".join(res["errors"])
+        for needle in ("uses the public prefix CON", "listed twice", "kind must be RulesPack", "must be inside the project"):
+            self.assertIn(needle, errs)
+        self.assertEqual(res["rules"]["CON-2"]["status"], "active")  # the wrong-kind pack is not applied
+
+    def test_emit_profile_prints_nothing_on_errors(self):
+        import io, contextlib
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n  disable: {NOPE-1: x}\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = rp.main([str(self.project), "--rules-root", str(self.tmp / "rules"), "--emit-profile"])
+        self.assertEqual((code, out.getvalue()), (1, ""))
+
+    def test_installed_layout_finds_sibling_plugins(self):
+        cache = self.tmp / "cache/devfoundry"
+        for plugin, versions in (("engineering-profile", ("old", "new")), ("api-contracts", ("v1",))):
+            for v in versions:
+                d = cache / plugin / v
+                (d / ".claude-plugin").mkdir(parents=True); (d / ".claude-plugin/plugin.json").write_text(json.dumps({"name": plugin}))
+                (d / "skills/s").mkdir(parents=True)
+                (d / "skills/s/rules.md").write_text(f"- **{plugin.upper().split('-')[0]}-1** {v}\n")
+        import os, time
+        os.utime(cache / "engineering-profile/old", (time.time() - 100, time.time() - 100))
+        script = cache / "engineering-profile/new/skills/project-profile/scripts/resolve-profile.py"
+        roots = rp.default_rules_roots(script)
+        self.assertEqual(sorted(r.name for r in roots), ["new", "v1"])
+        rules = rp.public_rules(roots)
+        self.assertEqual(rules["ENGINEERING-1"]["text"], "new")
+        self.assertIn("API-1", rules)
+
     def test_real_public_rules_are_found(self):
-        rules = rp.public_rules([rp.default_rules_root()])
+        rules = rp.public_rules(rp.default_rules_roots())
         for rid in ("CON-2", "APISEC-1", "MUNIT-5", "APIKIT-2", "FLOOR-1", "FLOOR-2"):
             self.assertIn(rid, rules)
         self.assertTrue(rules["APISEC-1"]["floor"] and rules["FLOOR-2"]["floor"])

@@ -2,20 +2,9 @@
   "name": "api-contracts",
   "version": "0.2.0",
   "description": "REST API contracts in OpenAPI 3 or RAML 1.0: makes every endpoint start from a spec that describes it (writing or extending the spec in the project when the published one lacks it), with rules for resources, data types, errors, examples, versioning and security.",
-  "author": {
-    "name": "Bruno Souza",
-    "url": "https://github.com/brunosouzas"
-  },
+  "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
   "homepage": "https://github.com/brunosouzas/devfoundry-plugins",
   "repository": "https://github.com/brunosouzas/devfoundry-plugins",
   "license": "MIT",
-  "keywords": [
-    "api",
-    "openapi",
-    "oas",
-    "raml",
-    "api-contract",
-    "contract-first",
-    "apikit"
-  ]
+  "keywords": ["api", "openapi", "oas", "raml", "api-contract", "contract-first", "apikit"]
 }
