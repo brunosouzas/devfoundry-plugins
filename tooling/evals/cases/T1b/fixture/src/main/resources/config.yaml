@@ -1,0 +1,11 @@
+http:
+  port: "8081"
+mq:
+  url: "https://mq-us-east-1.anypoint.example.test/api/v1"
+  clientId: "synthetic-client-id"
+  clientSecret: "synthetic-client-secret"
+  ordersCreated: "orders.created"
+billing:
+  host: "billing.example.test"
+  port: "443"
+  basePath: "/api/v1"

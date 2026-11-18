@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Idempotent Receiver keyed by the business key paymentId: claim, call, mark done.
+     POST /charges charges the customer and offers no idempotency key, so this store is the only guard. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <!-- Broker side: manual ack, only after the payment's outcome is recorded. A failure nacks, so the broker redelivers. -->
+  <flow name="payments-requested-consumer-flow">
+    <anypoint-mq:subscriber config-ref="payments-mq-config" destination="${mq.paymentsRequested}"
+                            acknowledgementMode="MANUAL"
+                            acknowledgementTimeout="${mq.ackTimeoutSeconds}" acknowledgementTimeoutUnit="SECONDS"/>
+    <set-variable variableName="ackToken" value="#[attributes.ackToken]"/>
+    <flow-ref name="charge-payment-flow"/>
+    <anypoint-mq:ack config-ref="payments-mq-config" ackToken="#[vars.ackToken]"/>
+    <error-handler>
+      <on-error-continue>
+        <logger level="ERROR" message="#['payments.requested nacked, paymentId=' ++ (vars.paymentId default 'unknown') ++ ': ' ++ (error.description default '')]"/>
+        <anypoint-mq:nack config-ref="payments-mq-config" ackToken="#[vars.ackToken]"/>
+      </on-error-continue>
+    </error-handler>
+  </flow>
+
+  <!-- Processing logic, without the broker source, so MUnit can call it directly. Sets vars.outcome. -->
+  <flow name="charge-payment-flow">
+    <!-- The key as a plain Java string: a value read from a JSON payload keeps the JSON media type and breaks string concatenation in loggers. -->
+    <set-variable variableName="paymentId" value="#[output application/java --- payload.paymentId as String]"/>
+    <set-variable variableName="outcome" value="NEW"/>
+    <set-variable variableName="charge" value="#[payload]"/>
+
+    <!-- 1. Claim the key before the side effect. failIfPresent makes the claim atomic: two deliveries cannot both pass. -->
+    <try>
+      <os:store key="#[vars.paymentId]" objectStore="charged-payments-store" failIfPresent="true">
+        <os:value><![CDATA[#[output application/java --- { state: "IN_PROGRESS", at: now() as String }]]]></os:value>
+      </os:store>
+      <error-handler>
+        <on-error-continue type="OS:KEY_ALREADY_EXISTS">
+          <os:retrieve key="#[vars.paymentId]" objectStore="charged-payments-store" target="previous"/>
+          <set-variable variableName="outcome" value="DUPLICATE"/>
+        </on-error-continue>
+      </error-handler>
+    </try>
+
+    <choice>
+      <when expression="#[vars.outcome == 'DUPLICATE']">
+        <!-- DONE: already charged. IN_PROGRESS: another delivery is running, or one crashed mid-way (reconcile). Never charge again. -->
+        <logger level="WARN" message="#['Repeat of paymentId=' ++ vars.paymentId ++ ' skipped, stored state ' ++ (vars.previous.state default 'unknown')]"/>
+      </when>
+      <otherwise>
+        <!-- 2. Process, 3. mark done. -->
+        <try>
+          <http:request doc:name="Create charge" method="POST" config-ref="payments-api-config" path="/charges">
+            <http:body><![CDATA[#[output application/json --- vars.charge]]]></http:body>
+          </http:request>
+          <os:store key="#[vars.paymentId]" objectStore="charged-payments-store">
+            <os:value><![CDATA[#[output application/java --- { state: "DONE", chargeId: payload.chargeId default "" }]]]></os:value>
+          </os:store>
+          <set-variable variableName="outcome" value="CHARGED"/>
+          <error-handler>
+            <!-- The charge certainly did not happen (the API rejected the request): release the key so a redelivery can retry. -->
+            <on-error-propagate type="HTTP:BAD_REQUEST, HTTP:UNAUTHORIZED, HTTP:FORBIDDEN, HTTP:NOT_FOUND">
+              <os:remove key="#[vars.paymentId]" objectStore="charged-payments-store"/>
+            </on-error-propagate>
+            <!-- Unknown outcome (timeout, connection lost, 5xx): the charge may have happened. Keep the key IN_PROGRESS and reconcile. -->
+            <on-error-continue>
+              <logger level="ERROR" message="#['RECONCILE paymentId=' ++ vars.paymentId ++ ': outcome unknown, key kept: ' ++ (error.description default '')]"/>
+              <set-variable variableName="outcome" value="UNKNOWN"/>
+            </on-error-continue>
+          </error-handler>
+        </try>
+      </otherwise>
+    </choice>
+  </flow>
+</mule>

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "devfoundry",
+  "description": "devFoundry: Claude Code plugins for MuleSoft and API engineering, with integration patterns and project profiles.",
+  "owner": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
+  "plugins": [
+    {
+      "name": "integration-patterns",
+      "description": "Decides whether a flow needs an integration or resilience pattern (Idempotent Receiver, Circuit Breaker), applies it only when its problem is present, with verified Mule 4 realizations.",
+      "author": { "name": "Bruno Souza" },
+      "source": "./plugins/integration-patterns",
+      "category": "development",
+      "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/integration-patterns"
+    },
+    {
+      "name": "engineering-profile",
+      "description": "Applies the project's engineering/profile.yaml (naming, precedence over legacy code) and makes each Mule 4 flow's integration decisions explicit before writing code.",
+      "author": { "name": "Bruno Souza" },
+      "source": "./plugins/engineering-profile",
+      "category": "development",
+      "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/engineering-profile"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+http:
+  port: "8081"
+score:
+  host: "score.example.test"
+  port: "443"
+  basePath: "/api/v2"

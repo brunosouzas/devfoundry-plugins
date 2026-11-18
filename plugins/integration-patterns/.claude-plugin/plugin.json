@@ -1,0 +1,10 @@
+{
+  "name": "integration-patterns",
+  "version": "0.4.0",
+  "description": "Decides whether a flow needs an integration or resilience pattern, applies it only when its problem is present, and says why when it is not. Catalog: Idempotent Receiver and Circuit Breaker, each with a platform-neutral reference and a verified Mule 4 realization.",
+  "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
+  "homepage": "https://github.com/brunosouzas/devfoundry-plugins",
+  "repository": "https://github.com/brunosouzas/devfoundry-plugins",
+  "license": "MIT",
+  "keywords": ["integration-patterns", "eip", "idempotent-receiver", "circuit-breaker", "mulesoft", "mule4"]
+}

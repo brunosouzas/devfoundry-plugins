@@ -1,0 +1,1 @@
+Agora precisa de um endpoint novo nessa API: GET /products/{id}, que busca o produto no catálogo (GET /catalog/v1/items/{id} no host do catálogo, que já está no config.yaml) e devolve id, name e price. Manda ver.

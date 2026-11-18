@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <!-- Daily job: copies today's exchange rates from the provider to the pricing API. -->
+  <flow name="sync-exchange-rates-flow">
+    <scheduler>
+      <scheduling-strategy>
+        <cron expression="0 0 6 * * ?" timeZone="America/Sao_Paulo"/>
+      </scheduling-strategy>
+    </scheduler>
+    <http:request config-ref="rates-provider-config" method="GET" path="/latest">
+      <http:query-params><![CDATA[#[{ base: p('rates.base') }]]]></http:query-params>
+    </http:request>
+    <ee:transform>
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ date: payload.date, rates: payload.rates }]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+    <http:request config-ref="pricing-api-config" method="PUT" path="/exchange-rates"/>
+    <logger level="INFO" message="#['Exchange rates synced for ' ++ (payload.date default 'unknown date')]"/>
+  </flow>
+</mule>

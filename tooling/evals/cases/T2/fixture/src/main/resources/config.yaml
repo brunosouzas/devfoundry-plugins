@@ -1,0 +1,4 @@
+broker:
+  url: "tcp://broker.example.test:61616"
+db:
+  url: "jdbc:postgresql://db.example.test:5432/crm_replica"

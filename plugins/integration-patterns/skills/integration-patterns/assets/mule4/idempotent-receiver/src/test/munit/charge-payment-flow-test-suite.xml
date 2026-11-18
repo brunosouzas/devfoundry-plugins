@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <munit:config name="charge-payment-flow-test-suite.xml"/>
+
+  <!-- The test that proves the pattern: the same business fact twice, the side effect once.
+       Payloads are serialized JSON (output application/json - - -), like a real message body.
+       A DataWeave object with mediaType="application/json" alone is a Java Map and breaks the flow's DataWeave. -->
+  <munit:test name="charge-same-payment-twice-charges-once-test">
+    <munit:behavior>
+      <os:clear objectStore="charged-payments-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Create charge"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- { chargeId: "ch-1", status: "CAPTURED" }]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { paymentId: "pay-1", customerId: "c-1", amount: 10.0, currency: "BRL" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <flow-ref name="charge-payment-flow"/>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { paymentId: "pay-1", customerId: "c-1", amount: 10.0, currency: "BRL" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <flow-ref name="charge-payment-flow"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Create charge"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:assert-that expression="#[vars.outcome]" is='#[MunitTools::equalTo("DUPLICATE")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- Not over-blocking: two different keys both reach the side effect. -->
+  <munit:test name="charge-different-payments-charges-each-test">
+    <munit:behavior>
+      <os:clear objectStore="charged-payments-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Create charge"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- { chargeId: "ch-1", status: "CAPTURED" }]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { paymentId: "pay-1", customerId: "c-1", amount: 10.0, currency: "BRL" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <flow-ref name="charge-payment-flow"/>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { paymentId: "pay-2", customerId: "c-1", amount: 20.0, currency: "BRL" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <flow-ref name="charge-payment-flow"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="2">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Create charge"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- A certain failure releases the key, so the redelivery can retry. -->
+  <munit:test name="charge-rejected-releases-key-test">
+    <munit:behavior>
+      <os:clear objectStore="charged-payments-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Create charge"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:BAD_REQUEST"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { paymentId: "pay-3", customerId: "c-1", amount: 10.0, currency: "BRL" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <try>
+        <flow-ref name="charge-payment-flow"/>
+        <error-handler>
+          <on-error-continue type="HTTP:BAD_REQUEST">
+            <set-variable variableName="failed" value="#[true]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+      <os:contains key="pay-3" objectStore="charged-payments-store" target="keyPresent"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.failed default false]" is="#[MunitTools::equalTo(true)]"/>
+      <munit-tools:assert-that expression="#[vars.keyPresent]" is="#[MunitTools::equalTo(false)]"/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- An unknown outcome keeps the key: the charge may have happened, so a redelivery must not charge again. -->
+  <munit:test name="charge-timeout-keeps-key-test">
+    <munit:behavior>
+      <os:clear objectStore="charged-payments-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Create charge"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:TIMEOUT"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { paymentId: "pay-4", customerId: "c-1", amount: 10.0, currency: "BRL" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <flow-ref name="charge-payment-flow"/>
+      <os:retrieve key="pay-4" objectStore="charged-payments-store" target="stored"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.outcome]" is='#[MunitTools::equalTo("UNKNOWN")]'/>
+      <munit-tools:assert-that expression="#[vars.stored.state]" is='#[MunitTools::equalTo("IN_PROGRESS")]'/>
+    </munit:validation>
+  </munit:test>
+</mule>

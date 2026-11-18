@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+      xmlns:db="http://www.mulesoft.org/schema/mule/db"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+        http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+
+  <configuration-properties file="config.yaml"/>
+
+  <jms:config name="crm-broker-config">
+    <jms:active-mq-connection brokerUrl="${broker.url}"/>
+  </jms:config>
+
+  <db:config name="customers-db-config">
+    <db:generic-connection url="${db.url}" driverClassName="org.postgresql.Driver"/>
+  </db:config>
+
+  <!--
+    Consumes CustomerUpdated events from the CRM (at-least-once broker).
+    Body: { customerCode, name, email, status }
+    customerCode is the CRM's natural key; customers.customer_code has a UNIQUE constraint.
+    The only side effect is this upsert: no emails, no downstream calls.
+  -->
+  <flow name="customer-updated-sync-flow">
+    <jms:listener config-ref="crm-broker-config" destination="crm.customer.updated" ackMode="AUTO"/>
+    <logger level="INFO" message='#["CustomerUpdated " ++ (payload.customerCode default "")]'/>
+    <db:insert config-ref="customers-db-config">
+      <db:sql><![CDATA[
+        INSERT INTO customers (customer_code, name, email, status)
+        VALUES (:customerCode, :name, :email, :status)
+        ON CONFLICT (customer_code)
+        DO UPDATE SET name = EXCLUDED.name, email = EXCLUDED.email, status = EXCLUDED.status
+      ]]></db:sql>
+      <db:input-parameters><![CDATA[#[{
+        customerCode: payload.customerCode,
+        name: payload.name,
+        email: payload.email,
+        status: payload.status
+      }]]]></db:input-parameters>
+    </db:insert>
+  </flow>
+</mule>

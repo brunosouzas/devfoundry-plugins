@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <configuration-properties file="config.yaml"/>
+
+  <anypoint-mq:config name="payments-mq-config">
+    <anypoint-mq:connection url="${mq.url}" clientId="${mq.clientId}" clientSecret="${mq.clientSecret}"/>
+  </anypoint-mq:config>
+
+  <http:request-config name="payments-api-config" basePath="${payments.basePath}" responseTimeout="${payments.responseTimeoutMillis}">
+    <http:request-connection protocol="HTTPS" host="${payments.host}" port="${payments.port}"/>
+  </http:request-config>
+
+  <!-- The dedup store: persistent (survives restarts), shared by every worker, with a finite TTL. -->
+  <os:object-store name="charged-payments-store"
+                   persistent="true"
+                   entryTtl="${dedup.ttlDays}" entryTtlUnit="DAYS"
+                   expirationInterval="1" expirationIntervalUnit="HOURS"/>
+</mule>

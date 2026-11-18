@@ -1,0 +1,1 @@
+Umas duas vezes por mês o job de câmbio falha porque a API de cotações dá timeout, e aí os preços ficam com a cotação do dia anterior até alguém rodar o job na mão. Deixa esse job mais robusto. As APIs estão descritas em `docs/apis.md`.

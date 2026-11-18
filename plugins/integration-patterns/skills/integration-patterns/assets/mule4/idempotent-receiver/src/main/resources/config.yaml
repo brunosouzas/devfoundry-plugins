@@ -1,0 +1,17 @@
+# Synthetic values only.
+mq:
+  url: "https://mq.example.test/api/v1"
+  clientId: "synthetic-client-id"
+  clientSecret: "synthetic-client-secret"
+  paymentsRequested: "payments.requested"
+  # Longer than the slowest POST /charges call, so the broker does not redeliver while it runs.
+  ackTimeoutSeconds: "120"
+payments:
+  host: "payments.example.test"
+  port: "443"
+  basePath: "/api/v1"
+  responseTimeoutMillis: "30000"
+dedup:
+  # Must exceed the longest span in which a repeat can arrive (message TTL, redelivery, DLQ replays).
+  # A repeat after this is charged again. Object Store v2 allows at most 30 days.
+  ttlDays: "30"

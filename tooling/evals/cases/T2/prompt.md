@@ -1,0 +1,1 @@
+Esse projeto `customer-sync` consome os eventos de atualização de cliente do CRM e grava na nossa base. O broker é at-least-once, então às vezes a mesma mensagem chega duas ou três vezes. Dá uma revisada no flow e ajusta o que for preciso pra ele aguentar mensagem repetida.

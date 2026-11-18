@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+  <flow name="getCustomerByIdFlow">
+    <http:listener config-ref="HTTP_Listener_config" path="/customers/{id}" allowedMethods="GET"/>
+    <set-variable variableName="customerID" value="#[attributes.uriParams.id]"/>
+    <http:request config-ref="Crm_Backend_config" method="GET" path="#['/crm/customers/' ++ vars.customerID]"/>
+    <ee:transform>
+      <ee:message><ee:set-payload resource="dwl/customer-to-api.dwl"/></ee:message>
+    </ee:transform>
+  </flow>
+  <flow name="getCustomerOrdersFlow">
+    <http:listener config-ref="HTTP_Listener_config" path="/customers/{id}/orders" allowedMethods="GET"/>
+    <set-variable variableName="customerID" value="#[attributes.uriParams.id]"/>
+    <http:request config-ref="Orders_Backend_config" method="GET" path="/v2/orders">
+      <http:query-params>#[{ customer: vars.customerID }]</http:query-params>
+    </http:request>
+    <ee:transform>
+      <ee:message><ee:set-payload resource="dwl/orders-to-api.dwl"/></ee:message>
+    </ee:transform>
+  </flow>
+</mule>

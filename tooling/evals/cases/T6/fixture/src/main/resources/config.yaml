@@ -1,0 +1,9 @@
+rates:
+  host: "rates.example.test"
+  port: "443"
+  basePath: "/v1"
+  base: "BRL"
+pricing:
+  host: "pricing.internal.example.test"
+  port: "443"
+  basePath: "/api"

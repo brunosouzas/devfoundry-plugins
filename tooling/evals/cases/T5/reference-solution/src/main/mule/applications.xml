@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <!-- GET /applications/{id}: the loan application with the customer's credit score. -->
+  <flow name="get-application-flow">
+    <http:listener config-ref="api-listener-config" path="/applications/{id}" allowedMethods="GET"/>
+    <set-variable variableName="applicationId" value="#[attributes.uriParams.id]"/>
+    <!-- Synthetic application lookup; the real repository comes later. -->
+    <ee:transform>
+      <ee:variables>
+        <ee:set-variable variableName="application"><![CDATA[%dw 2.0
+output application/java
+---
+{ id: vars.applicationId, customerId: "cust-" ++ vars.applicationId, amount: 15000, status: "UNDER_REVIEW" }]]></ee:set-variable>
+      </ee:variables>
+    </ee:transform>
+    <!-- The score goes through the breaker. While it is open, or when the score API fails, answer at once with the score pending. -->
+    <set-variable variableName="scorePending" value="#[false]"/>
+    <try>
+      <flow-ref name="call-score-with-breaker-flow"/>
+      <error-handler>
+        <on-error-continue type="BREAKER:OPEN, HTTP:TIMEOUT, HTTP:CONNECTIVITY, HTTP:INTERNAL_SERVER_ERROR, HTTP:BAD_GATEWAY, HTTP:SERVICE_UNAVAILABLE, HTTP:GATEWAY_TIMEOUT">
+          <set-variable variableName="scorePending" value="#[true]"/>
+        </on-error-continue>
+      </error-handler>
+    </try>
+    <ee:transform>
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.application ++ { score: if (vars.scorePending) { status: "PENDING" } else { value: payload.score, band: payload.band, status: "AVAILABLE" } }]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+  </flow>
+
+  <!-- GET /products: the loan products on offer. Does not use the score API. -->
+  <flow name="get-products-flow">
+    <http:listener config-ref="api-listener-config" path="/products" allowedMethods="GET"/>
+    <ee:transform>
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[ { code: "PERSONAL", maxAmount: 50000 }, { code: "VEHICLE", maxAmount: 120000 } ]]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+  </flow>
+  <!-- The breaker, without a source so MUnit can call it. Raises BREAKER:OPEN while the circuit is open. -->
+  <flow name="call-score-with-breaker-flow">
+    <os:retrieve key="score-api" objectStore="breaker-state-store" target="breaker">
+      <os:default-value><![CDATA[#[output application/java --- { state: "CLOSED", failures: 0, openedAt: 0 }]]]></os:default-value>
+    </os:retrieve>
+    <set-variable variableName="nowSeconds" value="#[output application/java --- now() as Number]"/>
+    <set-variable variableName="trial" value="#[false]"/>
+
+    <choice>
+      <!-- OPEN within the cool-down, or a HALF_OPEN trial already in flight: do not call. -->
+      <when expression="#[vars.breaker.state != 'CLOSED' and (vars.nowSeconds - vars.breaker.openedAt) &lt; (p('breaker.openSeconds') as Number)]">
+        <raise-error type="BREAKER:OPEN" description="#['Circuit open for score-api since ' ++ (vars.breaker.openedAt as String)]"/>
+      </when>
+      <!-- Cool-down over: this request is the trial. Mark HALF_OPEN (with a fresh time) so concurrent requests keep failing fast. -->
+      <when expression="#[vars.breaker.state != 'CLOSED']">
+        <os:store key="score-api" objectStore="breaker-state-store">
+          <os:value><![CDATA[#[output application/java --- { state: "HALF_OPEN", failures: vars.breaker.failures, openedAt: vars.nowSeconds }]]]></os:value>
+        </os:store>
+        <set-variable variableName="trial" value="#[true]"/>
+      </when>
+    </choice>
+
+    <try>
+      <http:request doc:name="Get score" method="GET" config-ref="score-api-config" path="/scores/{customerId}">
+        <http:uri-params><![CDATA[#[{ customerId: vars.application.customerId }]]]></http:uri-params>
+      </http:request>
+      <!-- Success: close the circuit and reset the count. -->
+      <os:store key="score-api" objectStore="breaker-state-store">
+        <os:value><![CDATA[#[output application/java --- { state: "CLOSED", failures: 0, openedAt: 0 }]]]></os:value>
+      </os:store>
+      <error-handler>
+        <!-- The dependency is unhealthy: count it. A failed trial, or the threshold reached, opens the circuit. -->
+        <on-error-propagate type="HTTP:TIMEOUT, HTTP:CONNECTIVITY, HTTP:INTERNAL_SERVER_ERROR, HTTP:BAD_GATEWAY, HTTP:SERVICE_UNAVAILABLE, HTTP:GATEWAY_TIMEOUT">
+          <set-variable variableName="failures" value="#[output application/java --- if (vars.trial) (p('breaker.failureThreshold') as Number) else (vars.breaker.failures + 1)]"/>
+          <os:store key="score-api" objectStore="breaker-state-store">
+            <os:value><![CDATA[#[output application/java --- if (vars.failures >= (p('breaker.failureThreshold') as Number))
+              { state: "OPEN", failures: vars.failures, openedAt: vars.nowSeconds }
+            else
+              { state: "CLOSED", failures: vars.failures, openedAt: 0 }]]]></os:value>
+          </os:store>
+          <logger level="WARN" message="#['score-api failure ' ++ (vars.failures as String) ++ ': ' ++ (error.errorType.identifier default '')]"/>
+        </on-error-propagate>
+        <!-- Any other error (a 4xx, a bad request): the dependency answered, so it is healthy. Do not count it; a trial closes. -->
+        <on-error-propagate>
+          <choice>
+            <when expression="#[vars.trial]">
+              <os:store key="score-api" objectStore="breaker-state-store">
+                <os:value><![CDATA[#[output application/java --- { state: "CLOSED", failures: 0, openedAt: 0 }]]]></os:value>
+              </os:store>
+            </when>
+          </choice>
+        </on-error-propagate>
+      </error-handler>
+    </try>
+  </flow>
+</mule>
