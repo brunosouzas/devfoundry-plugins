@@ -36,6 +36,26 @@
       "source": "./plugins/engineering-profile",
       "category": "development",
       "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/engineering-profile"
+    },
+    {
+      "name": "api-contracts",
+      "description": "Makes every REST endpoint start from a spec that describes it, writing or extending the spec in the project when the published one lacks it, with rules for OpenAPI 3 and RAML contracts.",
+      "author": {
+        "name": "Bruno Souza"
+      },
+      "source": "./plugins/api-contracts",
+      "category": "development",
+      "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/api-contracts"
+    },
+    {
+      "name": "mule-engineering",
+      "description": "Mule 4 engineering rules with verified examples: the APIkit router and the spec it loads, and MUnit tests that call each endpoint through the HTTP listener.",
+      "author": {
+        "name": "Bruno Souza"
+      },
+      "source": "./plugins/mule-engineering",
+      "category": "development",
+      "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/mule-engineering"
     }
   ]
 }
