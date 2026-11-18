@@ -1,0 +1,19 @@
+# Synthetic profile A ("personal" style). Draft schema v0 — not a Claude Code standard.
+# Placed in a Mule project as engineering/profile.yaml.
+apiVersion: engineering.poc/v0
+kind: EngineeringProfile
+name: profile-a
+mulesoft:
+  naming:
+    # {resource}: plural, lower-case resource name (customers)
+    # {operation}: one of list | get | create | update | delete
+    flow: "{resource}-{operation}-flow"            # customers-get-flow
+    implFile: "src/main/mule/{resource}.xml"        # src/main/mule/customers.xml
+    globalConfigFile: "src/main/mule/global.xml"    # every global element (listener/request configs) lives here
+    variable: camelCase                             # customerId
+  # Precedence when the project already has code written before this profile.
+  precedence:
+    newCode: profile     # every new flow, file, global element and variable follows naming above, even next to legacy code
+                         # that does otherwise; create the implFile / globalConfigFile when they do not exist yet
+    legacyCode: keep     # do not rename, move or reformat existing code to fit the profile
+    divergence: report   # tell the developer where the legacy code diverges from the profile, as a note, not a change

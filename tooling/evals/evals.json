@@ -1,0 +1,100 @@
+{
+  "skill_name": "integration-patterns",
+  "note": "Fixed cases in the skill-creator evals.json shape. Prompts are verbatim files; the runner copies the fixture into a fresh temp project per run. Recorded POC baselines are in docs/poc-results.md.",
+  "evals": [
+    {
+      "id": "T1b",
+      "prompt_file": "tooling/evals/cases/T1b/prompt.md",
+      "files": [
+        "tooling/evals/cases/T1b/fixture/"
+      ],
+      "expected_output": "A consumer of orders.created that calls POST /invoices at most once per orderId, handles a failure after the key is stored, and has a finite dedup window; plus a duplicate MUnit test.",
+      "expectations": [
+        {
+          "id": "R1",
+          "text": "Business-key dedup on orderId before POST /invoices",
+          "grader": "script: tooling/evals/cases/T1b/grade.py"
+        },
+        {
+          "id": "R2",
+          "text": "Failure after the key is stored is handled (release on a sure failure, or a state per key)",
+          "grader": "manual, with the code signal from tooling/evals/cases/T1b/grade.py as evidence"
+        },
+        {
+          "id": "R3",
+          "text": "TTL/window limit stated, or a finite entryTtl in the code (flexible)",
+          "grader": "script when entryTtl is in the code; otherwise manual from the answer"
+        },
+        {
+          "id": "T4",
+          "text": "mvn clean test exits 0 and the duplicate MUnit test passes",
+          "grader": "script: tooling/evals/run-build.sh, then the grader names the duplicate test"
+        }
+      ]
+    },
+    {
+      "id": "T2",
+      "prompt_file": "tooling/evals/cases/T2/prompt.md",
+      "files": [
+        "tooling/evals/cases/T2/fixture/"
+      ],
+      "expected_output": "No dedup added; the answer says the upsert by natural key already makes repeats safe.",
+      "expectations": [
+        {
+          "id": "C1",
+          "text": "No dedup construct added",
+          "grader": "script: tooling/evals/cases/T2/check.sh"
+        },
+        {
+          "id": "C2",
+          "text": "The answer explains that the upsert makes repeats safe",
+          "grader": "manual, from the final answer"
+        }
+      ]
+    },
+    {
+      "id": "T5",
+      "prompt_file": "tooling/evals/cases/T5/prompt.md",
+      "files": [
+        "tooling/evals/cases/T5/fixture/"
+      ],
+      "expected_output": "A circuit breaker on the score call: fail fast while open, half-open trial, only unhealthy errors count, explicit short timeout, limits stated; no Idempotent Receiver.",
+      "expectations": [
+        {
+          "id": "B1-B4",
+          "text": "See tooling/evals/cases/T5/grading.md",
+          "grader": "blind reviewer agent; tooling/evals/cases/T5/grade.py for B3(b) and N1"
+        },
+        {
+          "id": "T7",
+          "text": "mvn clean test exits 0 and an open-circuit MUnit test passes",
+          "grader": "script: tooling/evals/run-build.sh with CASE=T5"
+        }
+      ]
+    },
+    {
+      "id": "T6",
+      "prompt_file": "tooling/evals/cases/T6/prompt.md",
+      "files": [
+        "tooling/evals/cases/T6/fixture/"
+      ],
+      "expected_output": "A retry with a delay for the daily job; no circuit-breaker state and no dedup.",
+      "expectations": [
+        {
+          "id": "D1",
+          "text": "No circuit-breaker or dedup constructs",
+          "grader": "script: tooling/evals/cases/T6/check.sh"
+        },
+        {
+          "id": "D2",
+          "text": "The answer explains a fix for the transient timeout",
+          "grader": "manual, from the final answer"
+        }
+      ]
+    }
+  ],
+  "run_checks": [
+    "verify-init-plugin.py: clean=True, both skills fired",
+    "the reference and the example project were read without a denied tool call"
+  ]
+}

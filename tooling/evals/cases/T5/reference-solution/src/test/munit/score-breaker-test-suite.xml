@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <munit:config name="score-breaker-test-suite.xml"/>
+  <!-- Time is never waited for: the cool-down is tested by storing a state whose openedAt is already in the past. -->
+
+  <!-- The test that proves the pattern: while the circuit is open, the dependency is not called and the flow fails fast. -->
+  <munit:test name="open-circuit-does-not-call-score-api-test">
+    <munit:behavior>
+      <os:clear objectStore="breaker-state-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- { customerId: "cust-a-1", score: 720, band: "B" }]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="application" value='#[{ id: "a-1", customerId: "cust-a-1" }]'/>
+      <os:store key="score-api" objectStore="breaker-state-store">
+        <os:value><![CDATA[#[output application/java --- { state: "OPEN", failures: 3, openedAt: (now() as Number) - 5 }]]]></os:value>
+      </os:store>
+      <try>
+        <flow-ref name="call-score-with-breaker-flow"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="0">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("BREAKER:OPEN")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- Three dependency failures open the circuit: the fourth request is not sent. -->
+  <munit:test name="opens-after-threshold-failures-test">
+    <munit:behavior>
+      <os:clear objectStore="breaker-state-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:SERVICE_UNAVAILABLE"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="application" value='#[{ id: "a-1", customerId: "cust-a-1" }]'/>
+      <foreach collection="#[1 to 4]">
+        <try>
+        <flow-ref name="call-score-with-breaker-flow"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+      </foreach>
+      <os:retrieve key="score-api" objectStore="breaker-state-store" target="stored"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="3">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:assert-that expression="#[vars.stored.state]" is='#[MunitTools::equalTo("OPEN")]'/>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("BREAKER:OPEN")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- A 4xx means the dependency answered: it does not count as a failure. -->
+  <munit:test name="client-error-does-not-trip-test">
+    <munit:behavior>
+      <os:clear objectStore="breaker-state-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:NOT_FOUND"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="application" value='#[{ id: "a-1", customerId: "cust-a-1" }]'/>
+      <foreach collection="#[1 to 4]">
+        <try>
+        <flow-ref name="call-score-with-breaker-flow"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+      </foreach>
+      <os:contains key="score-api" objectStore="breaker-state-store" target="hasState"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="4">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:assert-that expression="#[vars.hasState]" is='#[MunitTools::equalTo(false)]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- After the cool-down one trial call goes through; its success closes the circuit. -->
+  <munit:test name="half-open-trial-success-closes-test">
+    <munit:behavior>
+      <os:clear objectStore="breaker-state-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- { customerId: "cust-a-1", score: 720, band: "B" }]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="application" value='#[{ id: "a-1", customerId: "cust-a-1" }]'/>
+      <os:store key="score-api" objectStore="breaker-state-store">
+        <os:value><![CDATA[#[output application/java --- { state: "OPEN", failures: 3, openedAt: (now() as Number) - 3600 }]]]></os:value>
+      </os:store>
+      <flow-ref name="call-score-with-breaker-flow"/>
+      <os:retrieve key="score-api" objectStore="breaker-state-store" target="stored"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:assert-that expression="#[vars.stored.state]" is='#[MunitTools::equalTo("CLOSED")]'/>
+      <munit-tools:assert-that expression="#[vars.stored.failures]" is='#[MunitTools::equalTo(0)]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- A failed trial opens the circuit again, with a fresh cool-down. -->
+  <munit:test name="half-open-trial-failure-reopens-test">
+    <munit:behavior>
+      <os:clear objectStore="breaker-state-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:TIMEOUT"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="application" value='#[{ id: "a-1", customerId: "cust-a-1" }]'/>
+      <os:store key="score-api" objectStore="breaker-state-store">
+        <os:value><![CDATA[#[output application/java --- { state: "OPEN", failures: 3, openedAt: (now() as Number) - 3600 }]]]></os:value>
+      </os:store>
+      <try>
+        <flow-ref name="call-score-with-breaker-flow"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+      <os:retrieve key="score-api" objectStore="breaker-state-store" target="stored"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get score"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:assert-that expression="#[vars.stored.state]" is='#[MunitTools::equalTo("OPEN")]'/>
+      <munit-tools:assert-that expression="#[((now() as Number) - vars.stored.openedAt) &lt; 60]" is='#[MunitTools::equalTo(true)]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The API answers at once, with the score pending, while the circuit is open. -->
+  <munit:test name="open-circuit-application-has-pending-score-test">
+    <munit:behavior>
+      <os:clear objectStore="breaker-state-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- { customerId: "cust-a-1", score: 720, band: "B" }]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <os:store key="score-api" objectStore="breaker-state-store">
+        <os:value><![CDATA[#[output application/java --- { state: "OPEN", failures: 3, openedAt: (now() as Number) - 5 }]]]></os:value>
+      </os:store>
+      <munit:set-event>
+        <munit:attributes value='#[{ uriParams: { id: "a-1" } }]'/>
+      </munit:set-event>
+      <flow-ref name="get-application-flow"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="0"/>
+      <munit-tools:assert-that expression="#[payload.score.status]" is='#[MunitTools::equalTo("PENDING")]'/>
+    </munit:validation>
+  </munit:test>
+</mule>

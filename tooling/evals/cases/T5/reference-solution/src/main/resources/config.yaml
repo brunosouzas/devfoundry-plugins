@@ -1,0 +1,10 @@
+http:
+  port: "8081"
+score:
+  host: "score.example.test"
+  port: "443"
+  basePath: "/api/v2"
+  responseTimeoutMillis: "2000"
+breaker:
+  failureThreshold: "3"
+  openSeconds: "30"

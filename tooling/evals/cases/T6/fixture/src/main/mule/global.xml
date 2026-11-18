@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+  <configuration-properties file="config.yaml"/>
+
+  <http:request-config name="rates-provider-config" basePath="${rates.basePath}">
+    <http:request-connection protocol="HTTPS" host="${rates.host}" port="${rates.port}"/>
+  </http:request-config>
+
+  <http:request-config name="pricing-api-config" basePath="${pricing.basePath}">
+    <http:request-connection protocol="HTTPS" host="${pricing.host}" port="${pricing.port}"/>
+  </http:request-config>
+</mule>

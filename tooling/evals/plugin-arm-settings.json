@@ -1,0 +1,26 @@
+{
+  "skillOverrides": {
+    "artifact-capabilities": "off",
+    "artifact-diagramming": "off",
+    "batch": "off",
+    "claude-api": "off",
+    "code-review": "off",
+    "dataviz": "off",
+    "debug": "off",
+    "deep-research": "off",
+    "design": "off",
+    "design-sync": "off",
+    "doctor": "off",
+    "fewer-permission-prompts": "off",
+    "loop": "off",
+    "plugin-authoring": "off",
+    "run": "off",
+    "run-skill-generator": "off",
+    "schedule": "off",
+    "simplify": "off",
+    "slides": "off",
+    "update-config": "off",
+    "verify": "off",
+    "workflow-authoring": "off"
+  }
+}

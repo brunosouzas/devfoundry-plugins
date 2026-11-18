@@ -1,0 +1,1 @@
+Precisa adicionar nesse projeto o consumidor da fila `orders.created` do Anypoint MQ: pra cada pedido publicado, chamar a API de faturamento (POST /invoices, doc em `docs/billing-api.md`) pra emitir a fatura. A mensagem já tem orderId, customerId, items, total e currency.

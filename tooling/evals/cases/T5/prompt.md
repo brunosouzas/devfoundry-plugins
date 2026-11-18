@@ -1,0 +1,1 @@
+Quando a API de score fica lenta ou cai, o GET /applications/{id} fica esperando a resposta, as requisições vão acumulando e a aplicação inteira para de responder, até o GET /products, que nem usa o score. E mesmo depois que o score volta, a gente ainda demora pra se recuperar. Ajusta o projeto pra isso não derrubar mais a aplicação. A doc do score está em `docs/score-api.md`.

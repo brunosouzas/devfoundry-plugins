@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <!-- GET /applications/{id}: the loan application with the customer's credit score. -->
+  <flow name="get-application-flow">
+    <http:listener config-ref="api-listener-config" path="/applications/{id}" allowedMethods="GET"/>
+    <set-variable variableName="applicationId" value="#[attributes.uriParams.id]"/>
+    <!-- Synthetic application lookup; the real repository comes later. -->
+    <ee:transform>
+      <ee:variables>
+        <ee:set-variable variableName="application"><![CDATA[%dw 2.0
+output application/java
+---
+{ id: vars.applicationId, customerId: "cust-" ++ vars.applicationId, amount: 15000, status: "UNDER_REVIEW" }]]></ee:set-variable>
+      </ee:variables>
+    </ee:transform>
+    <http:request config-ref="score-api-config" method="GET" path="/scores/{customerId}">
+      <http:uri-params><![CDATA[#[{ customerId: vars.application.customerId }]]]></http:uri-params>
+    </http:request>
+    <ee:transform>
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.application ++ { score: { value: payload.score, band: payload.band } }]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+  </flow>
+
+  <!-- GET /products: the loan products on offer. Does not use the score API. -->
+  <flow name="get-products-flow">
+    <http:listener config-ref="api-listener-config" path="/products" allowedMethods="GET"/>
+    <ee:transform>
+      <ee:message>
+        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[ { code: "PERSONAL", maxAmount: 50000 }, { code: "VEHICLE", maxAmount: 120000 } ]]]></ee:set-payload>
+      </ee:message>
+    </ee:transform>
+  </flow>
+</mule>

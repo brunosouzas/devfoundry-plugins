@@ -1,0 +1,19 @@
+# Synthetic profile B ("enterprise" style, fictitious company ACME). Draft schema v0.
+# Placed in a Mule project as engineering/profile.yaml.
+apiVersion: engineering.poc/v0
+kind: EngineeringProfile
+name: profile-b
+mulesoft:
+  naming:
+    # {RESOURCE}: plural, upper-case resource name (CUSTOMERS)
+    # {OPERATION}: one of LIST | GET | CREATE | UPDATE | DELETE
+    flow: "ACM_{RESOURCE}_{OPERATION}_FL"                     # ACM_CUSTOMERS_GET_FL
+    implFile: "src/main/mule/impl/{resource}-impl.xml"        # src/main/mule/impl/customers-impl.xml
+    globalConfigFile: "src/main/mule/common/acm-global-config.xml"
+    variable: "v_{snake_case}"                                # v_customer_id
+  # Precedence when the project already has code written before this profile.
+  precedence:
+    newCode: profile     # every new flow, file, global element and variable follows naming above, even next to legacy code
+                         # that does otherwise; create the implFile / globalConfigFile when they do not exist yet
+    legacyCode: keep     # do not rename, move or reformat existing code to fit the profile
+    divergence: report   # tell the developer where the legacy code diverges from the profile, as a note, not a change
