@@ -16,7 +16,17 @@ Claude Code plugins for MuleSoft and API engineering. This file is for agents wo
 - **References are split.** A pattern has a platform-neutral `references/<pattern>.md` (the why, when and when NOT to use it, failures, limits, the test) and one realization per platform, `references/<platform>/<pattern>.md`. Refer to skill files as `${CLAUDE_SKILL_DIR}/...`.
 - **Every code example is a verified project**, in `assets/<platform>/<pattern>/`. It builds and its tests pass (`scripts/verify-examples.sh`), and its key test fails when the pattern is removed (a mutation check). No code snippet goes into a reference without a project that proves it. Pitfalls the build caught go into the realization.
 - **A new pattern** comes with its neutral reference, its realization, its verified example, a catalog row in `SKILL.md`, and two fixed cases in `tooling/evals/cases/`: one where the pattern is needed and one where it is not.
-- **Before a change merges:** `claude plugin validate plugins/<plugin>`, `scripts/verify-examples.sh`, and, when a skill's text changes, the fixed cases of that skill (`tooling/evals/run-suite.sh plugin ...`), graded as their `grading.md` says. These are regression checks, not a gate before every step. Report what was run and what was not.
+- **Test in proportion to the change.** Decide what the change can break, then run the smallest check that would catch it. Write the pass criterion down before running.
+
+  | What changed | What to run |
+  | --- | --- |
+  | Manifests, docs, layout only | `claude plugin validate`; a smoke run that reads the moved files |
+  | A verified example | `scripts/verify-examples.sh` plus the mutation check for that pattern |
+  | A realization (`references/<platform>/`) or how the skill reaches it | the verified examples, plus **1 run** of that pattern's positive case on the weakest supported model: the realization was read, the rubric passes, the generated project builds |
+  | When to use / When NOT to use, or the catalog signals | 1 run each of that pattern's positive and negative cases, on the weakest supported model |
+  | A new pattern, or a claim about the skill's value | the full fixed cases with a baseline arm (3 runs per model), which is the only case that needs it |
+
+  A failed check gets its cause found and fixed; it does not get another round of the same runs. Report what was run, what was not, and why.
 - **Never** write credentials, real customer data, real URLs or organisation IDs into fixtures or examples. Synthetic data only.
 
 ## Working conventions
