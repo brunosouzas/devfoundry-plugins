@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+  <!-- Every test sends a real HTTP request to the app's listener, so the router and the spec are part of what is
+       tested. A test that calls an implementation flow with flow-ref passes even when the spec has no such route. -->
+  <!-- http.port is a free port picked by the munit-maven-plugin (dynamicPorts in pom.xml). -->
+  <munit:config name="orders-api-test-suite.xml"/>
+
+  <!-- The test's own client. Its requests are not mocked: each mock below matches the backend call by doc:name. -->
+  <http:request-config name="test-client-config">
+    <http:request-connection host="localhost" port="${http.port}"/>
+  </http:request-config>
+
+  <munit:test name="get-order-through-listener-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="orders-api-main"/>
+      <munit:enable-flow-source value="get:\orders\(orderId):orders-api-config"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get order from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- { orderId: "ORD-000123", status: "OPEN" }]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/orders/ORD-000123">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+      <munit-tools:assert-that expression="#[payload.orderId]" is='#[MunitTools::equalTo("ORD-000123")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="list-orders-through-listener-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="orders-api-main"/>
+      <munit:enable-flow-source value="get:\orders:orders-api-config"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get orders from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value='#[output application/json --- [{ orderId: "ORD-000123", status: "CLOSED" }]]' mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/orders">
+        <http:query-params>#[{ status: "CLOSED" }]</http:query-params>
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+      <munit-tools:assert-that expression="#[sizeOf(payload)]" is="#[MunitTools::equalTo(1)]"/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The spec's enum is enforced by the router: an invalid status never reaches the backend. -->
+  <munit:test name="invalid-status-gives-400-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="orders-api-main"/>
+      <munit:enable-flow-source value="get:\orders:orders-api-config"/>
+    </munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/orders">
+        <http:query-params>#[{ status: "LOST" }]</http:query-params>
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(400)]"/>
+      <munit-tools:verify-call processor="http:request" times="0">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get orders from backend"/>
+        </munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="unknown-order-gives-404-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="orders-api-main"/>
+      <munit:enable-flow-source value="get:\orders\(orderId):orders-api-config"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get order from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:NOT_FOUND"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/orders/ORD-999999">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(404)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("ORDER_NOT_FOUND")]'/>
+    </munit:validation>
+  </munit:test>
+</mule>

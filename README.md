@@ -7,6 +7,8 @@ Claude Code plugins for MuleSoft and API engineering. They make an agent think a
 | `integration-patterns` | Finds integration problems in a flow, even when the developer does not name a pattern, and applies the right *Enterprise Integration Pattern* (Hohpe and Woolf), or says why none is needed. Catalog: **Idempotent Receiver** (no double charges on redelivery). |
 | `resilience-patterns` | Finds the risk of a slow or failing dependency taking the caller down, and applies a stability pattern, or says why a retry is enough. Catalog: **Circuit Breaker**. |
 | `engineering-profile` | Applies the project's `engineering/profile.yaml`: naming rules for flows, files, global elements and variables, and how new code relates to legacy code. The same skill gives different names under different profiles, without editing the skill. |
+| `api-contracts` | Makes every endpoint start from a spec that describes it: checks the spec the app actually loads, and writes or extends it in the project when the published one (a template placeholder, an Exchange asset) lacks the operations. Rules for OpenAPI 3 and RAML contracts. |
+| `mule-engineering` | Mule 4 rules with verified examples. Today: the APIkit router (which spec it loads, flows that match it) and MUnit tests that call each endpoint through the HTTP listener, so a route missing from the spec fails a test instead of answering 404 in production. |
 
 Each pattern has a platform-neutral reference and a Mule 4 realization backed by a project that builds and passes its MUnit tests.
 
@@ -19,6 +21,8 @@ In Claude Code:
 /plugin install integration-patterns@devfoundry
 /plugin install resilience-patterns@devfoundry
 /plugin install engineering-profile@devfoundry
+/plugin install api-contracts@devfoundry
+/plugin install mule-engineering@devfoundry
 ```
 
 The skills load on their own when the work matches. You can also ask for them by name.

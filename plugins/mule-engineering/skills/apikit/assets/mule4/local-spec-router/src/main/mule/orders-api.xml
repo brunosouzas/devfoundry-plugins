@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <!-- The listener flow: every request goes through the router, which checks it against the spec. -->
+  <flow name="orders-api-main">
+    <http:listener config-ref="orders-api-listener-config" path="/api/*">
+      <http:response statusCode="#[vars.httpStatus default 200]">
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+      </http:response>
+      <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body>#[payload]</http:body>
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+      </http:error-response>
+    </http:listener>
+    <apikit:router config-ref="orders-api-config"/>
+    <error-handler>
+      <on-error-propagate type="APIKIT:BAD_REQUEST">
+        <set-variable variableName="httpStatus" value="400"/>
+        <ee:transform>
+          <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "BAD_REQUEST", message: error.description }]]></ee:set-payload></ee:message>
+        </ee:transform>
+      </on-error-propagate>
+      <on-error-propagate type="APIKIT:NOT_FOUND">
+        <set-variable variableName="httpStatus" value="404"/>
+        <ee:transform>
+          <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "RESOURCE_NOT_FOUND", message: "No such resource" }]]></ee:set-payload></ee:message>
+        </ee:transform>
+      </on-error-propagate>
+      <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+        <set-variable variableName="httpStatus" value="405"/>
+        <ee:transform>
+          <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "METHOD_NOT_ALLOWED", message: "Method not allowed" }]]></ee:set-payload></ee:message>
+        </ee:transform>
+      </on-error-propagate>
+      <on-error-propagate type="ORDERS:NOT_FOUND">
+        <set-variable variableName="httpStatus" value="404"/>
+        <ee:transform>
+          <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "ORDER_NOT_FOUND", message: error.description }]]></ee:set-payload></ee:message>
+        </ee:transform>
+      </on-error-propagate>
+    </error-handler>
+  </flow>
+
+  <!-- APIkit implementation flows: the name is <method>:\<resource>:<apikit config>, one per operation of the spec. -->
+  <flow name="get:\orders:orders-api-config">
+    <flow-ref name="list-orders-flow"/>
+  </flow>
+
+  <flow name="get:\orders\(orderId):orders-api-config">
+    <flow-ref name="get-order-flow"/>
+  </flow>
+
+  <flow name="list-orders-flow">
+    <http:request config-ref="orders-backend-config" method="GET" path="/orders" doc:name="Get orders from backend">
+      <http:query-params>#[{ status: attributes.queryParams.status }]</http:query-params>
+    </http:request>
+  </flow>
+
+  <flow name="get-order-flow">
+    <http:request config-ref="orders-backend-config" method="GET" path="/orders/{orderId}" doc:name="Get order from backend">
+      <error-mapping sourceType="HTTP:NOT_FOUND" targetType="ORDERS:NOT_FOUND"/>
+      <http:uri-params>#[{ orderId: attributes.uriParams.orderId }]</http:uri-params>
+    </http:request>
+  </flow>
+</mule>

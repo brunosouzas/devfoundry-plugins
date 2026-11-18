@@ -1,0 +1,11 @@
+http:
+  port: "8081"
+# The spec the router loads. It is kept in src/main/resources/api/ until it is published to Exchange;
+# then this becomes resource::<groupId>:<assetId>:<version>:oas:zip:orders-api.yaml.
+api:
+  spec: "orders-api.yaml"
+orders:
+  backend:
+    host: "localhost"
+    port: "9091"
+    timeoutMillis: "5000"
