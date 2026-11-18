@@ -2,20 +2,37 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "devfoundry",
   "description": "devFoundry: Claude Code plugins for MuleSoft and API engineering, with integration patterns and project profiles.",
-  "owner": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
+  "owner": {
+    "name": "Bruno Souza",
+    "url": "https://github.com/brunosouzas"
+  },
   "plugins": [
     {
       "name": "integration-patterns",
-      "description": "Decides whether a flow needs an integration or resilience pattern (Idempotent Receiver, Circuit Breaker), applies it only when its problem is present, with verified Mule 4 realizations.",
-      "author": { "name": "Bruno Souza" },
+      "description": "Decides whether an integration flow needs an Enterprise Integration Pattern (Hohpe and Woolf catalog, starting with the Idempotent Receiver) and applies it only when its problem is present, with verified Mule 4 realizations.",
+      "author": {
+        "name": "Bruno Souza"
+      },
       "source": "./plugins/integration-patterns",
       "category": "development",
       "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/integration-patterns"
     },
     {
+      "name": "resilience-patterns",
+      "description": "Decides whether code that calls another system needs a resilience pattern (starting with the Circuit Breaker) against a slow or failing dependency, with verified Mule 4 realizations.",
+      "author": {
+        "name": "Bruno Souza"
+      },
+      "source": "./plugins/resilience-patterns",
+      "category": "development",
+      "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/resilience-patterns"
+    },
+    {
       "name": "engineering-profile",
       "description": "Applies the project's engineering/profile.yaml (naming, precedence over legacy code) and makes each Mule 4 flow's integration decisions explicit before writing code.",
-      "author": { "name": "Bruno Souza" },
+      "author": {
+        "name": "Bruno Souza"
+      },
       "source": "./plugins/engineering-profile",
       "category": "development",
       "homepage": "https://github.com/brunosouzas/devfoundry-plugins/tree/main/plugins/engineering-profile"

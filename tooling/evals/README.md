@@ -11,8 +11,8 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 | T1b | integration-patterns | A queue consumer that charges: Idempotent Receiver needed | `T1b/grade.py` (R1, R3), R2 by hand; build: `run-build.sh` |
 | T2 | integration-patterns | An upsert consumer: no dedup needed (negative) | `T2/check.sh`, C2 by hand |
 | T3b | engineering-profile | New code in a legacy project follows the profile | `T3/check.py --base cases/T3b/fixture` |
-| T5 | integration-patterns | A synchronous API with a failing dependency: Circuit Breaker needed | blind reviewer agent; `T5/grade.py` (B3 timeout, N1); build: `CASE=T5 run-build.sh` |
-| T6 | integration-patterns | A daily job with occasional timeouts: no breaker needed (negative) | `T6/check.sh`, D2 by hand |
+| T5 | resilience-patterns | A synchronous API with a failing dependency: Circuit Breaker needed | blind reviewer agent; `T5/grade.py` (B3 timeout, N1); build: `CASE=T5 run-build.sh` |
+| T6 | resilience-patterns | A daily job with occasional timeouts: no breaker needed (negative) | `T6/check.sh`, D2 by hand |
 
 `evals.json` lists the cases in the skill-creator shape.
 
@@ -25,7 +25,7 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 - `run-suite.sh <baseline|plugin> <out dir> <case>...`: 3 runs per case and model.
 - `run-build.sh <scratch dir> <runs dir> <out dir>` (`CASE=T1b` or `T5`): builds each project a run left, with `mvn clean test`, exactly as it is.
 - **Checks on every run:**
-  - `verify-init.py` (baseline) and `verify-init-plugin.py <plugins> <skills>` (plugin): the run was isolated, and in the plugin arm which skills fired.
+  - `verify-init.py` (baseline) and `verify-init-plugin.py <plugins> <skills>` (plugin): the run was isolated, and in the plugin arm which skills fired. With all three plugins: `verify-init-plugin.py engineering-profile,integration-patterns,resilience-patterns engineering-profile:project-profile,integration-patterns:integration-patterns,resilience-patterns:resilience-patterns <run.jsonl>...`.
   - `check-reads.py`: which references and examples were read.
 
 ## Requirements
