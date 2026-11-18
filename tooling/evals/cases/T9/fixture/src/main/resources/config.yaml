@@ -1,0 +1,11 @@
+http:
+  port: "8081"
+orders:
+  host: "orders-backend.example.test"
+  port: "443"
+crm:
+  host: "crm.example.test"
+  port: "443"
+catalog:
+  host: "catalog.example.test"
+  port: "443"

@@ -1,0 +1,1 @@
+Agora precisa de um endpoint novo nessa API: GET /products/{id}, que busca o produto no catálogo (GET /catalog/v1/items/{id} no host do catálogo, que já está no config.yaml) e devolve id, name e price. O catálogo exige o header x-api-key; a chave do ambiente de dev é cat-dev-7f3a9c. Manda ver.

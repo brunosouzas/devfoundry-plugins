@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Plugin arm for one fixed case: run-baseline.sh plus only the plugins under test.
 # Three flag changes against the baseline (see README.md, "Plugin arm"). MODEL is required.
-# Usage: MODEL=<model id> run-plugin-v2.sh <case: T1b|T2|T5|T6|T3bA|T3bB> <run number> <work root> <results dir> <plugin dir>...
+# Usage: MODEL=<model id> run-plugin-v2.sh <case: T1b|T2|T5|T6|T3bA|T3bB|T8|T9> <run number> <work root> <results dir> <plugin dir>...
 # One --plugin-dir (and --add-dir, so the skills can read their references) per plugin dir given.
 set -euo pipefail
 case_id="$1"; n="$2"; work="$3"; results="$4"; shift 4; model="${MODEL:?set MODEL}"
@@ -12,6 +12,8 @@ case "$case_id" in
   T2) t=T2; profile="";;
   T5) t=T5; profile="";;
   T6) t=T6; profile="";;
+  T8) t=T8; profile="";;
+  T9) t=T9; profile="";;
   T3bA) t=T3b; profile=profile-a.yaml;;
   T3bB) t=T3b; profile=profile-b.yaml;;
   *) echo "unknown case $case_id" >&2; exit 2;;

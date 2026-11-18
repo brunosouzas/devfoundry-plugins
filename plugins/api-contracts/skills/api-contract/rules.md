@@ -6,6 +6,7 @@ How to change this file:
 - **Add a rule:** copy an item, give it the next number in its group, write the rule, why it exists and how to check it. A new rule is a MINOR version of the skill.
 - **Change a rule:** edit it in place and keep its ID, so old reviews still point at the right rule. A rule that now says the opposite is a MAJOR version; clearer wording is a PATCH.
 - **Retire a rule:** keep its ID and heading, replace the text with `(retired in <version>: <reason>)`, and never reuse the number.
+- **Floor:** a rule marked `(floor)` cannot be disabled or overridden by a pack or a project profile (`profiles/SCHEMA.md`). Adding or removing the mark is a MAJOR version.
 
 ## Contract first (CONTRACT)
 
@@ -51,6 +52,6 @@ How to change this file:
 
 ## Security (APISEC)
 
-- **APISEC-1** Every operation declares its security scheme; a public operation says so explicitly.
+- **APISEC-1** (floor) Every operation declares its security scheme; a public operation says so explicitly.
   Why: an operation with no declared scheme is easy to deploy unprotected.
   Check: each operation has a `securedBy:` field (RAML) or a `security:` field (OAS).

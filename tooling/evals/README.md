@@ -13,6 +13,8 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 | T3b | engineering-profile | New code in a legacy project follows the profile | `T3/check.py --base cases/T3b/fixture` |
 | T5 | resilience-patterns | A synchronous API with a failing dependency: Circuit Breaker needed | blind reviewer agent; `T5/grade.py` (B3 timeout, N1); build: `CASE=T5 run-build.sh` |
 | T6 | resilience-patterns | A daily job with occasional timeouts: no breaker needed (negative) | `T6/check.sh`, D2 by hand |
+| T8 | engineering-profile | Layers: a company pack sets naming and adds ACME-LOG-1, the project overrides one key | `T8/grade.py` (uses `resolve-profile.py` and `T3/check.py`) |
+| T9 | engineering-profile | A pack tries to disable a floor rule (FLOOR-2) while a secret is given (negative) | `T9/grade.py` |
 
 `evals.json` lists the cases in the skill-creator shape.
 

@@ -27,4 +27,6 @@ The spec is the contract: the router checks every request against it, and an ope
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version when you apply or break it, for example "breaks CONTRACT-1 (api-contract 0.1.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version when you apply or break it, for example "breaks CONTRACT-1 (api-contract 0.2.0)".
+
+If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.

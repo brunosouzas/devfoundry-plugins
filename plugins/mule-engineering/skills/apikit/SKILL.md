@@ -17,4 +17,6 @@ The router reads one spec and sends each request to the implementation flow of t
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version, for example "breaks APIKIT-2 (apikit 0.1.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version, for example "breaks APIKIT-2 (apikit 0.2.0)".
+
+If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.
