@@ -4,6 +4,7 @@ Claude Code plugins for MuleSoft and API engineering. They make an agent think a
 
 | Plugin | What it does |
 | --- | --- |
+| `api-first` | The API-first way to implement a change from its requirements: every requirement numbered before code, the contract first, tests that cite the requirement they prove, and a final table that shows anything not done. It takes the requirements from your own process (an OpenSpec change, a design, requirement documents) and calls the other plugins at each step. |
 | `integration-patterns` | Finds integration problems in a flow, even when the developer does not name a pattern, and applies the right *Enterprise Integration Pattern* (Hohpe and Woolf), or says why none is needed. Catalog: **Idempotent Receiver** (no double charges on redelivery). |
 | `resilience-patterns` | Finds the risk of a slow or failing dependency taking the caller down, and applies a stability pattern, or says why a retry is enough. Catalog: **Circuit Breaker**. |
 | `engineering-profile` | Applies the project's `engineering/profile.yaml`: naming rules for flows, files, global elements and variables, and how new code relates to legacy code. The same skill gives different names under different profiles, without editing the skill. |
@@ -18,6 +19,7 @@ In Claude Code:
 
 ```
 /plugin marketplace add brunosouzas/devfoundry-plugins
+/plugin install api-first@devfoundry
 /plugin install integration-patterns@devfoundry
 /plugin install resilience-patterns@devfoundry
 /plugin install engineering-profile@devfoundry
