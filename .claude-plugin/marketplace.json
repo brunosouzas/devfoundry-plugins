@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "devfoundry",
-  "description": "devFoundry: Claude Code plugins for MuleSoft and API engineering, with integration patterns and project profiles.",
+  "description": "devFoundry: Claude Code plugins for MuleSoft and API engineering: integration and resilience patterns, API contracts, Mule engineering rules and project profiles.",
   "owner": {
     "name": "Bruno Souza",
     "url": "https://github.com/brunosouzas"

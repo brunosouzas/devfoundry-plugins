@@ -8,8 +8,6 @@
 
 ### Changed
 - `engineering-profile` 0.6.0: invokes `api-contract` and `munit` for an API endpoint; `legacyCode: keep` does not keep a template's placeholder spec.
-
-### Changed
 - The Circuit Breaker moved from `integration-patterns` into a new plugin, `resilience-patterns` 0.1.0: it is a stability pattern, not an Enterprise Integration Pattern. `integration-patterns` 0.5.0 keeps the book's catalog (Idempotent Receiver). `engineering-profile` 0.5.0 invokes both skills.
 
 ## 2026-11-18, bootstrap

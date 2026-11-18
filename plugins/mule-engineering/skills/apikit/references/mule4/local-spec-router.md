@@ -2,6 +2,10 @@
 
 Project: `${CLAUDE_SKILL_DIR}/assets/mule4/local-spec-router/` (Mule 4.9.5, APIkit 1.13.3, HTTP 1.10.3, MUnit 3.4.0). `scripts/verify-examples.sh` builds it and runs its 4 tests. A synthetic orders API: `GET /orders?status=` and `GET /orders/{orderId}`, both calling a backend over HTTP.
 
+## What the example leaves out on purpose
+
+It shows routing and testing, nothing else. A real spec also follows the api-contract rules the example skips: a security scheme on each operation (APISEC-1), examples (CON-3), a major version in the base path (CON-4), a bound or paging on `GET /orders` (RES-3), and every error status on each operation (CON-2). A real listener flow also maps `APIKIT:NOT_ACCEPTABLE` 406, `APIKIT:UNSUPPORTED_MEDIA_TYPE` 415 and `APIKIT:NOT_IMPLEMENTED` 501, with a test for each mapped error (MUNIT-2). Copy the syntax, not the scope.
+
 ## Files and why each piece is there
 
 | File | What it shows |
