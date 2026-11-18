@@ -1,6 +1,6 @@
 # devFoundry plugins
 
-Claude Code plugins for MuleSoft and API engineering. They make an agent think about integration problems before it writes code: it checks whether a flow needs a pattern, applies it only when the problem is present, and follows the project's own conventions.
+Claude Code plugins for MuleSoft and API engineering. They make an agent think about integration problems before it writes code: it checks whether a flow needs a pattern, applies it only when the problem is present, starts each endpoint from a spec that describes it, tests it through HTTP, and follows the project's own conventions.
 
 | Plugin | What it does |
 | --- | --- |

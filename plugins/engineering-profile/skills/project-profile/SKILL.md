@@ -15,11 +15,11 @@ The project's conventions live in `engineering/profile.yaml`, not in this skill.
    - **A slow or unavailable dependency:** for each synchronous call, what happens to the flow, its callers and the rest of the app when the dependency hangs or fails for minutes.
 
    Then invoke the `integration-patterns` skill for repeated messages and side effects, and the `resilience-patterns` skill for slow or unavailable dependencies, and follow each one. Apply a pattern only when the problem it solves is present in this flow and none of its "When NOT to use" items applies; otherwise say which item applies and leave the flow without it. Do this whether or not the project has a profile.
-   For an API endpoint, also invoke the `api-contract` skill (api-contracts) before writing flows, so the endpoint is in the spec the application loads, and the `munit` skill (mule-engineering) for its tests; when those plugins are not installed, check the loaded spec yourself and test each endpoint through the HTTP listener.
+   For an API endpoint, also invoke the `api-contract` skill (api-contracts) before writing flows, so the endpoint is in the spec the application loads, the `apikit` skill (mule-engineering) for the router, and the `munit` skill (mule-engineering) for its tests; when those plugins are not installed, check the loaded spec yourself and test each endpoint through the HTTP listener.
 1. Read `engineering/profile.yaml` at the project root before writing any Mule XML. If it does not exist, say so and follow the conventions already in the project.
 2. Under `mulesoft.naming`, treat every key as a rule that the code must follow. Resolve each pattern by filling its placeholders from the change at hand (for example the resource and the operation of the endpoint). Take placeholder meaning and casing from the profile itself (its comments and examples); never from habit or from another project.
 3. Apply each rule:
-   - `flow`: the `name` of every flow or sub-flow you create.
+   - `flow`: the `name` of every flow or sub-flow you create, except APIkit implementation flows, whose names the router matches (`get:\resource:config`): keep those names, or name them by the profile and add `apikit:flow-mappings` (see the `apikit` skill).
    - `implFile`: the file that holds the flow.
    - `globalConfigFile`: the file that holds every global element (listener, request and other configs). Put every global element you add there, never inline in the flow file and never in another existing file.
    - `variable`: the name of every flow variable you create (`set-variable`, `target` attributes).

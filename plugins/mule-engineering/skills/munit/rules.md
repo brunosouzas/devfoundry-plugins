@@ -28,4 +28,4 @@ How to change this file: add a rule with the next number; edit a rule in place a
 
 - **MUNIT-6** Mocks of an outbound connector operation are matched by the call's `doc:name` or `config-ref`, not by the processor type alone.
   Why: a mock of `http:request` with no attribute also catches the test's own HTTP request to the listener, and the test asserts on the mock's answer instead of the app's.
-  Check: each `mock-when` of `http:request` has `with-attributes`.
+  Check: each `mock-when` of `http:request` has a `with-attribute` on `doc:name` or `config-ref`.

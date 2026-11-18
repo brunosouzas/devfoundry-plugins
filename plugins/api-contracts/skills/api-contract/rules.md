@@ -1,6 +1,6 @@
 # API contract: rules
 
-Rules for REST API contracts. RES, CON and APISEC come from common REST design practice (ported from the `api-spec` skill of brunosouzas/agent-skills, same IDs). CONTRACT is new in devFoundry. In an existing API, follow the conventions it already uses and report a difference instead of renaming; these rules decide new resources and types.
+Rules for REST API contracts. RES, CON and APISEC come from common REST design practice (ported from the `api-spec` skill of brunosouzas/agent-skills, same IDs). RES-3 gained an exception for bounded results. CONTRACT is new in devFoundry. In an existing API, follow the conventions it already uses and report a difference instead of renaming; these rules decide new resources and types.
 
 How to change this file:
 - **Add a rule:** copy an item, give it the next number in its group, write the rule, why it exists and how to check it. A new rule is a MINOR version of the skill.
@@ -11,9 +11,9 @@ How to change this file:
 
 - **CONTRACT-1** Every operation the application implements is in the spec the application loads, with its parameters, request body and responses; a spec from a project template is a placeholder and is replaced by this API's own spec.
   Why: the router answers 404 or 405 for an operation the spec lacks, whatever the code behind it does; tests that call the code directly pass, and the gap shows only in production.
-  Check: each implemented operation (method and path) appears in the loaded spec; the loaded spec's title and asset id name this API, not a template.
+  Check: each implemented operation (method and path) appears in the loaded spec; the loaded spec describes this API (its title and operations), not a template's.
 
-- **CONTRACT-2** When the published spec lacks the operations and cannot be published from where you work, write the spec in the project (`src/main/resources/api/`), point the router at it, and report publishing it to Exchange as a follow-up.
+- **CONTRACT-2** When the published spec lacks the operations and cannot be published from where you work, write the spec in the project (`src/main/resources/api/`), point the router at it, and report publishing it to Exchange as a follow-up. A real published spec is copied whole and extended; only a placeholder is replaced.
   Why: a spec kept in the project lets the application route, validate and be tested now; the follow-up keeps one versioned contract as the goal.
   Check: the router's `api` (or the property it reads) names the project file; the answer lists the publish follow-up.
 
