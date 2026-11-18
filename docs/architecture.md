@@ -1,5 +1,7 @@
 # Architecture
 
+What is in and out of scope, and the order of the next pieces, is in `scope.md`.
+
 ## Principles
 
 - **Capabilities, policies and context are separate.** Skills hold reusable capabilities. The project profile (`engineering/profile.yaml`) holds the conventions that vary between people and companies. The project's code and specs hold the current requirements. A company changes the profile, never the skill.

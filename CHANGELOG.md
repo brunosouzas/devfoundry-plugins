@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- `docs/scope.md`: the three layers (public skills, personal and company rules and agents), what is in and out of scope, and the order of the next pieces.
 - `api-contracts` 0.1.0, skill `api-contract`: before an endpoint is built, check that the spec the application loads describes it; replace a template's placeholder spec, or write the spec in the project when the published one lacks the operations (CONTRACT-1, CONTRACT-2). RES, CON and APISEC ported from the `api-spec` skill of brunosouzas/agent-skills.
 - `mule-engineering` 0.1.0, skills `apikit` and `munit`: the spec the router loads and implementation flows that match it (APIKIT-1 to APIKIT-3), and endpoints tested through the HTTP listener (MUNIT-5), with mocks matched by `doc:name` (MUNIT-6). Verified example `apikit/assets/mule4/local-spec-router/`, with its mutation checks.
 
