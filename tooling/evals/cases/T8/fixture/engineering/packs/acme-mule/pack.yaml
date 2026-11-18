@@ -1,0 +1,25 @@
+# Synthetic company pack (fictitious company ACME), for documentation and the eval cases only.
+# A real company pack lives in the company's private repository and comes into a project as
+# engineering/packs/<name>/ (git submodule or a pinned copy).
+apiVersion: devfoundry/v1
+kind: RulesPack
+name: acme-mule
+version: 1.0.0
+layer: company
+mulesoft:
+  naming:
+    # {resource}: plural, lower-case resource name (customers); {operation}: list | get | create | update | delete
+    flow: "acme-{resource}-{operation}-flow"           # acme-customers-get-flow
+    implFile: "src/main/mule/acme/{resource}.xml"      # src/main/mule/acme/customers.xml
+    globalConfigFile: "src/main/mule/acme/acme-global.xml"
+    variable: "snake_case"                             # customer_id
+  precedence:
+    newCode: profile
+    legacyCode: keep
+    divergence: report
+rules:
+  add:
+    - id: ACME-LOG-1
+      text: "Every new flow that serves an endpoint logs one line on entry and one line on exit, with a core logger whose category is com.acme.api.<resource> (com.acme.api.customers)."
+      why: "ACME's log routing and audit dashboards select API traffic by that category."
+      check: "each new endpoint flow has at least two logger elements with category com.acme.api.<resource>"

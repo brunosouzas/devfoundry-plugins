@@ -1,0 +1,9 @@
+# The catalog team's profile: ACME's company pack, plus one team choice.
+apiVersion: devfoundry/v1
+kind: EngineeringProfile
+name: catalog-team
+extends:
+  - engineering/packs/acme-mule
+mulesoft:
+  naming:
+    variable: "camelCase"   # this team keeps camelCase variables (productId), over the company's snake_case

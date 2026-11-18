@@ -29,7 +29,7 @@ The skills load on their own when the work matches. You can also ask for them by
 
 ## Project profile
 
-Put the conventions in `engineering/profile.yaml` at the project root. See `profiles/SCHEMA.md` and the examples in `profiles/examples/`. Without a profile, the skills follow the conventions already in the project, and say so.
+Put the conventions in `engineering/profile.yaml` at the project root. See `profiles/SCHEMA.md` and the examples in `profiles/examples/`. A profile can extend your company's or your own rules packs, kept in private repositories, and override, disable or add rules by ID; floor rules (synthetic test data, no secrets in code, a declared security scheme) cannot be turned off. `plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py` shows the rules in effect. Without a profile, the skills follow the conventions already in the project, and say so.
 
 ## What was measured
 
