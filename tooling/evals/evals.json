@@ -1,5 +1,5 @@
 {
-  "skill_name": "integration-patterns",
+  "skill_name": "integration-patterns, resilience-patterns",
   "note": "Fixed cases in the skill-creator evals.json shape. Prompts are verbatim files; the runner copies the fixture into a fresh temp project per run. Recorded POC baselines are in docs/poc-results.md.",
   "evals": [
     {
@@ -30,7 +30,8 @@
           "text": "mvn clean test exits 0 and the duplicate MUnit test passes",
           "grader": "script: tooling/evals/run-build.sh, then the grader names the duplicate test"
         }
-      ]
+      ],
+      "skill": "integration-patterns"
     },
     {
       "id": "T2",
@@ -50,7 +51,8 @@
           "text": "The answer explains that the upsert makes repeats safe",
           "grader": "manual, from the final answer"
         }
-      ]
+      ],
+      "skill": "integration-patterns"
     },
     {
       "id": "T5",
@@ -70,7 +72,8 @@
           "text": "mvn clean test exits 0 and an open-circuit MUnit test passes",
           "grader": "script: tooling/evals/run-build.sh with CASE=T5"
         }
-      ]
+      ],
+      "skill": "resilience-patterns"
     },
     {
       "id": "T6",
@@ -90,7 +93,8 @@
           "text": "The answer explains a fix for the transient timeout",
           "grader": "manual, from the final answer"
         }
-      ]
+      ],
+      "skill": "resilience-patterns"
     }
   ],
   "run_checks": [

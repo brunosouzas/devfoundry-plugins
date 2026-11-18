@@ -5,7 +5,7 @@
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"; arm="$1"; out="$2"; shift 2
 work="${WORK:-$(mktemp -d)}"; models="${MODELS:-claude-opus-5-5 claude-sonnet-5-5}"
-plugins=("$here/../../plugins/engineering-profile" "$here/../../plugins/integration-patterns")
+plugins=("$here/../../plugins/engineering-profile" "$here/../../plugins/integration-patterns" "$here/../../plugins/resilience-patterns")
 for m in $models; do for c in "$@"; do
   ( for n in 1 2 3; do
       if [ "$arm" = baseline ]; then MODEL=$m "$here/run-baseline.sh" "$c" "$n" "$work/$arm" "$out/$arm/$m"

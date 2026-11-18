@@ -8,11 +8,15 @@
 
 ## Plugins
 
-- **`integration-patterns`:** one skill with a catalog, not one skill per pattern. A single skill chooses between patterns, or none, and does not compete with sibling skills for the same trigger. A pattern can still be asked for by name. Each pattern has:
+- **`integration-patterns`** (the *Enterprise Integration Patterns* catalog, with the book's names) and **`resilience-patterns`** (stability patterns such as the Circuit Breaker, which is not an EIP): one skill per plugin with a catalog, not one skill per pattern. A single skill chooses between patterns, or none, and does not compete with sibling skills for the same trigger. A pattern can still be asked for by name. Each pattern has:
   - `references/<pattern>.md`: platform-neutral. The problem, when to use, when NOT to use, failures, limits and the test.
   - `references/<platform>/<pattern>.md`: how to build it on that platform. Native options first, then the files of the verified example, and the pitfalls its build caught.
   - `assets/<platform>/<pattern>/`: the verified example, built by `scripts/verify-examples.sh`.
-- **`engineering-profile`:** applies `mulesoft.naming` and `mulesoft.precedence` from the profile, and lists each flow's integration decisions (repeats, failures, slow dependencies) before invoking `integration-patterns`.
+- **`engineering-profile`:** applies `mulesoft.naming` and `mulesoft.precedence` from the profile, and lists each flow's integration decisions (repeats, failures, slow dependencies) before invoking `integration-patterns` and `resilience-patterns`.
+
+## Platforms
+
+The pattern skills are platform-neutral. On a platform, a pattern is realized in one of three ways: a native component (on Mule, the Idempotent Receiver is `idempotent-message-validator`, the Content-Based Router is `choice`), a tool configured rather than coded (on Mule, Anypoint MQ is the channel, guaranteed delivery and the dead letter channel), or code built from parts when nothing native exists. One component can cover several patterns at once (Anypoint MQ, Batch). Today each pattern carries its Mule 4 realization in `references/mule4/` and `assets/mule4/`. The plan is to move those into a Mule platform plugin with a two-way map (pattern → realization, component → patterns it already covers), which the pattern skills invoke after choosing a pattern. Other platforms then add their own plugin without touching the pattern skills.
 
 ## Reusable components
 

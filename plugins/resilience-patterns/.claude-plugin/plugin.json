@@ -1,0 +1,10 @@
+{
+  "name": "resilience-patterns",
+  "version": "0.1.0",
+  "description": "Decides whether code that calls another system needs a resilience pattern against a slow or failing dependency, applies it only when its problem is present, and says why when it is not. Catalog: Circuit Breaker, with a platform-neutral reference and a verified Mule 4 realization.",
+  "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
+  "homepage": "https://github.com/brunosouzas/devfoundry-plugins",
+  "repository": "https://github.com/brunosouzas/devfoundry-plugins",
+  "license": "MIT",
+  "keywords": ["resilience", "circuit-breaker", "timeout", "stability-patterns", "mulesoft", "mule4"]
+}

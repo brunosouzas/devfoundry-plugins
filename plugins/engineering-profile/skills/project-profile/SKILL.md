@@ -14,7 +14,7 @@ The project's conventions live in `engineering/profile.yaml`, not in this skill.
    - **After a failure:** for each step that can fail, what has already happened by then and what the flow does next (retry, redelivery, dead letter, compensation).
    - **A slow or unavailable dependency:** for each synchronous call, what happens to the flow, its callers and the rest of the app when the dependency hangs or fails for minutes.
 
-   Then invoke the `integration-patterns` skill and follow it. Apply a pattern only when the problem it solves is present in this flow and none of its "When NOT to use" items applies; otherwise say which item applies and leave the flow without it. Do this whether or not the project has a profile.
+   Then invoke the `integration-patterns` skill for repeated messages and side effects, and the `resilience-patterns` skill for slow or unavailable dependencies, and follow each one. Apply a pattern only when the problem it solves is present in this flow and none of its "When NOT to use" items applies; otherwise say which item applies and leave the flow without it. Do this whether or not the project has a profile.
 1. Read `engineering/profile.yaml` at the project root before writing any Mule XML. If it does not exist, say so and follow the conventions already in the project.
 2. Under `mulesoft.naming`, treat every key as a rule that the code must follow. Resolve each pattern by filling its placeholders from the change at hand (for example the resource and the operation of the endpoint). Take placeholder meaning and casing from the profile itself (its comments and examples); never from habit or from another project.
 3. Apply each rule:
