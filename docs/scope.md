@@ -35,10 +35,10 @@ The public layer never holds personal or company material, and never client data
 | --- | --- | --- | --- |
 | API-first implementation | `api-first` | `api-first-implementation`: reuse first, requirements inventory, contract first, tests traced to requirements, final check (AFI-1 to AFI-6) | measured on the full-API case |
 | API contract (spec) | `api-contracts` | contract first, RES, CON, APISEC | spec validation with real tooling |
-| Mule code | `mule-engineering` | `mule-app` (flows, layout, properties, errors, logs, build), `dataweave`, `apikit` | deploy and platform configuration stays out (delivery); naming conventions stay in profiles and private packs |
+| Mule code | `mule-engineering` | `mule-app` (flows, layout, properties, errors, logs, build), `dataweave`, `apikit`, `mule-sdk` (shared assets) | deploy and platform configuration stays out (delivery); naming conventions stay in profiles and private packs |
 | Unit tests | `mule-engineering` | `munit` (endpoints through HTTP, mocks, error paths) | small gaps only |
 | API design | `api-contracts` | API-led layers as rules (LAYER-1 to LAYER-5: what a system, process and experience API holds; a new or skipped layer is proposed), limits in the contract (NFR-1); resources and versioning in RES and CON | solution architecture stays out (platform, topology, integration strategy, design documents and reviews belong to the team's process, which calls these rules) |
-| Integration patterns | `integration-patterns` | Idempotent Receiver | Content-Based Router, Scatter-Gather, Aggregator, Dead Letter Channel |
+| Integration patterns | `integration-patterns` | Idempotent Receiver | Content-Based Router, Scatter-Gather, Aggregator, Dead Letter Channel, Correlation Identifier, Publish-Subscribe (source rules in `docs/backlog/eip-from-agent-skills.md`) |
 | Resilience patterns | `resilience-patterns` | Circuit Breaker, session renewal, a bounded fan-out with a time budget, retry of transient failures | bulkheads beyond the fan-out's concurrency bound |
 | Layers and overrides | `engineering-profile` | schema v1: packs in `extends`, rules overridden, disabled or added by ID, floor rules (`references/layers.md`) | a personal preference layer above the project |
 | Measurement | `tooling/evals` | fixed cases T1b, T2, T3b, T5, T6, T8, T9, and the full-API benchmark TAPI (synthetic) | MUnit of the examples in CI (it needs MuleSoft's EE repository; CI packages them) |
