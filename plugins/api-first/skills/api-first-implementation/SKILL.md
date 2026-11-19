@@ -34,8 +34,10 @@ API-first is a public practice (MuleSoft's API-first guidance among others): the
 
    Every `not done` and `not tested` has its reason. Fix what you can before you finish; what stays open is listed, never dropped.
 
+   Before the table, give a **"Decisions for you"** section: every question to the developer, in one place. It holds the AFI-5 and AFI-6 questions, each requirement left undone because it waits on the developer (an ambiguity, a doubt about which component owns it, a value the requirements lack), and each assumption the developer must confirm. A reader who reads only that section must see every open decision (AFI-3). It is not the integration decisions of `project-profile`, which say what the flow does about repeated messages and failures. The answer still opens with the reuse line and the inventory (AFI-4, AFI-1) and ends with the table.
+
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks AFI-3 (api-first-implementation 0.2.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks AFI-3 (api-first-implementation 0.2.1)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add.

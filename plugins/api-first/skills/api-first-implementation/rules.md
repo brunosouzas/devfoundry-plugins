@@ -18,9 +18,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
   Check: every inventory ID appears in a test name or description, or in the final table with a reason.
   Class: auto
 
-- **AFI-3** The answer ends with the final table of every requirement: done and tested, done but not tested, or not done, each with where it is and its test, and a reason for anything not done or not tested.
-  Why: a requirement left out silently looks done; the table turns a gap into a decision the developer can see.
-  Check: the table has one row per inventory ID, checked against the code and the tests, not against memory.
+- **AFI-3** The answer ends with the final table of every requirement: done and tested, done but not tested, or not done, each with where it is and its test, and a reason for anything not done or not tested. A requirement not done because it waits on the developer (an ambiguity, a doubt about which component owns it, a value the requirements lack), or done on an assumption the developer must confirm, is also a question in the answer's "Decisions for you" section, not only a row of the table.
+  Why: a requirement left out silently looks done; the table turns a gap into a decision the developer can see, and a reader who reads only the "Decisions for you" section must still see it.
+  Check: the table has one row per inventory ID, checked against the code and the tests, not against memory; every `not done` that waits on the developer, and every assumption the developer must confirm, also appears in "Decisions for you".
   Class: auto
 
 - **AFI-4** Before creating an API, a spec or a resource, look for what already exists: the specs in the project, the Exchange asset the project names (a spec dependency in `pom.xml`, an `apikit:config` that reads `resource::...`, an asset named in the requirements), and an existing System API that already reaches the same backend (named in the requirements, the project's documents or its configuration). Report what you found and whether the change reuses it, extends it or does not use it, and why; when nothing exists, say so.

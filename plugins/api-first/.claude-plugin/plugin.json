@@ -1,6 +1,6 @@
 {
   "name": "api-first",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "API-first implementation, the public practice: what exists reused first, requirements inventoried and numbered, contract before code, code and tests that trace back to each requirement, and a final check of every requirement. Calls the contract, profile, pattern and platform skills at each step; takes its requirements from whatever spec the team's own process produced.",
   "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
   "homepage": "https://github.com/brunosouzas/devfoundry-plugins",

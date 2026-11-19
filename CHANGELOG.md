@@ -17,6 +17,7 @@
 - `mule-engineering` 0.1.0, skills `apikit` and `munit`: the spec the router loads and implementation flows that match it (APIKIT-1 to APIKIT-3), and endpoints tested through the HTTP listener (MUNIT-5), with mocks matched by `doc:name` (MUNIT-6). Verified example `apikit/assets/mule4/local-spec-router/`, with its mutation checks.
 
 ### Changed
+- `api-first` 0.2.1: AFI-3 and step 7, the answer has a "Decisions for you" section before the final table, with every question to the developer: the AFI-5 and AFI-6 questions, each requirement left undone because it waits on the developer (an ambiguity, a doubt about which component owns it, a missing value) and each assumption to confirm. Such a requirement is no longer only a row of the table.
 - `engineering-profile` 0.6.0: invokes `api-contract` and `munit` for an API endpoint; `legacyCode: keep` does not keep a template's placeholder spec.
 - The Circuit Breaker moved from `integration-patterns` into a new plugin, `resilience-patterns` 0.1.0: it is a stability pattern, not an Enterprise Integration Pattern. `integration-patterns` 0.5.0 keeps the book's catalog (Idempotent Receiver). `engineering-profile` 0.5.0 invokes both skills.
 
