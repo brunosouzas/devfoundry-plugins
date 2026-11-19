@@ -92,9 +92,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
 - **BUILD-1** Build with Maven 3.9.x, the JDK the runtime supports (17 for Mule 4.6 and later) and a pinned LTS runtime version; never Maven 3.10 with the Mule plugins.
   Why: Maven 3.10 breaks the Mule Maven plugins with `NoSuchMethodError`, and a wrong JDK fails with errors that do not mention Java.
   Check: the build and its wrapper pin Maven 3.9.x and Java 17; the runtime version is explicit in `pom.xml`.
-  Class: auto
+  Class: propose
 
 - **BUILD-2** The POM has a `<name>`, and the dependencies outside test scope have no known vulnerability: upgrade the library that brings one, or pin the fixed version in `dependencyManagement`; never drop the scan.
   Why: publishing to Exchange fails after the whole test run on a missing `name` ("Property name is required"); a vulnerable transitive dependency ships with the application.
   Check: `<name>` present; the project's dependency scan passes without exclusions.
-  Class: auto
+  Class: propose
