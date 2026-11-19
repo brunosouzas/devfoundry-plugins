@@ -12,6 +12,8 @@ The catalog is the one of *Enterprise Integration Patterns* (Hohpe and Woolf), w
 1. **Start from the integration decisions.** For the flow at hand, write down (briefly, in your answer):
    - **Repeats:** can the same message or request reach the flow more than once? Look at the source: a broker with at-least-once delivery, an acknowledgement timeout, a nack, a client that resends, a scheduler that overlaps. Then look at every side effect the flow causes and ask whether doing it twice is harmful.
    - **Failures:** for each step, what happens when it fails, and what has already happened by then (a charge made, a key recorded, a message acknowledged)?
+
+   A flow with no side effect (a read, such as a `GET` that writes nothing anywhere) is safe to repeat: skip steps 2 to 4 and report `Idempotent Receiver: not applied: read-only, a repeat changes nothing`; invoke `resilience-patterns` if the flow calls another system.
 2. **Match against the catalog.** For each row whose signals are present, read the pattern's reference before writing code, and then its realization for the project's platform. `${CLAUDE_SKILL_DIR}` is this skill's directory, the base directory given when the skill loads. The reference explains why each piece of the pattern is there, and it does not depend on any platform. The realization points to an example project that is known to build and pass its tests, so take the syntax from it rather than from memory. Platforms with a realization today: Mule 4 (`references/mule4/`, `assets/mule4/`).
 
    | Pattern | Signals that the problem is present | Reference, then realization |

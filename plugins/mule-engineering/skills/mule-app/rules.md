@@ -1,6 +1,6 @@
 # Mule application: rules
 
-Rules for Mule 4 applications: flows, layout, configuration, errors, logging and the build. Most are ported from the `mulesoft` skill of brunosouzas/agent-skills, from MuleSoft's published development practice and the platform's documented behaviour; the IDs are kept, so a review that cites one still points at the same rule. MERR-3 is new. In an existing project, follow the conventions it already uses and report a difference instead of renaming; these rules decide new projects and new files.
+Rules for Mule 4 applications: flows, layout, configuration, errors, logging and the build. Most are ported from the `mulesoft` skill of brunosouzas/agent-skills, from MuleSoft's published development practice and the platform's documented behaviour; the IDs are kept, so a review that cites one still points at the same rule. MERR-3 is new. In an existing project, follow the conventions it already uses and report a difference instead of renaming; these rules decide new projects, and new files where the project has no convention of its own.
 
 Not here on purpose:
 - **Names.** The project profile (`engineering/profile.yaml`, `project-profile` skill) owns the names of flows, files and variables, and the project's own conventions come next. These rules only ask that a name says what the thing does (FLOW-2) and that a new project picks one convention and keeps it. The naming rules of the `mulesoft` skill (FLOW-5, FLOW-6) are not ported.
@@ -41,9 +41,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
   Check: the application folder has `pom.xml` with `mule-application` packaging and `mule-artifact.json`, and no other Mule project below it.
   Class: auto
 
-- **LAYOUT-2** `src/main/mule/` holds one entry file (the listener or the APIkit router), a `common/` folder with the global configuration and the global error handler, and an `impl/` folder with one file per resource or use case. A file the profile or the project names (the global configuration, an implementation file) goes where it says; the files it does not name follow this layout.
+- **LAYOUT-2** `src/main/mule/` holds one entry file (the listener or the APIkit router), a `common/` folder with the global configuration and the global error handler, and an `impl/` folder with one file per resource or use case. A file the profile or the project names (the global configuration, an implementation file) goes where it says; the files it does not name follow this layout. In an existing project with another layout (one file per API or per exercise, globals beside the flows), a new file follows the layout the project has, and the difference is reported.
   Why: a maintainer finds the entry point, the shared configuration and each use case without searching.
-  Check: new flow files go into these folders (or the ones the profile names); no global element in an `impl/` file.
+  Check: new flow files go into these folders (or the ones the profile names, or the layout an existing project already has, reported); no global element in an `impl/` file.
   Class: auto
 
 ## Configuration (CFG)
@@ -53,16 +53,16 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
   Check: search the XML for hosts, ports, URLs and timeouts written as literals.
   Class: auto
 
-- **CFG-3** Properties live in `src/main/resources/properties/`: a common file holds what is the same in every environment; keys are hierarchical (`crm.retry.maxCount`). What differs per environment comes either from one file per environment, or from runtime properties that the deploy sets; the project's delivery decides which, and never both for one key.
+- **CFG-3** Properties live in `src/main/resources/properties/`: a common file holds what is the same in every environment; keys are hierarchical (`crm.retry.maxCount`). What differs per environment comes either from one file per environment, or from runtime properties that the deploy sets; the project's delivery decides which, and never both for one key. A `configuration-properties` element is global to the application: every flow sees its keys, so loading a file that another part of the application does not load can change how that part resolves a placeholder. A new part of a shared application loads its own file with its own key prefix, and the change shows that the existing flows still start: a listener test of each existing listener flow (MUNIT-5), or the application run once with each listener bound to its port, since MUnit's lazy initialization starts only what a test reaches.
   Why: one predictable place per value; a key set in a file and again at deploy has two owners, and nobody knows which one won.
-  Check: with per-environment files, one exists for each target environment; with runtime properties, no per-environment file exists and each such key is named in the deploy's configuration.
+  Check: with per-environment files, one exists for each target environment; with runtime properties, no per-environment file exists and each such key is named in the deploy's configuration; a file added to a shared application has its own name and key prefix.
   Class: auto
 
 ## Errors (MERR)
 
-- **MERR-1** Handle errors with one global error handler (`configuration defaultErrorHandler-ref`), plus a local `on-error-continue` or `on-error-propagate` only where the flow needs a specific response.
+- **MERR-1** Handle errors with one global error handler (`configuration defaultErrorHandler-ref`), plus a local `on-error-continue` or `on-error-propagate` only where the flow needs a specific response. In an existing application with no global handler, where adding one would change how flows that already exist answer (a published or legacy application), the new flows handle their own errors and the difference is reported.
   Why: one place defines the error contract; scattered handlers return inconsistent errors.
-  Check: the application sets `defaultErrorHandler-ref`, and each local handler covers a case the global one does not.
+  Check: the application sets `defaultErrorHandler-ref`, and each local handler covers a case the global one does not; or the report says why the application has none.
   Class: auto
 
 - **MERR-2** Map each error type to the HTTP status and body the API spec defines; never return a raw Mule error message (`error.description`, `error.detailedDescription`) or a stack trace to the caller.
@@ -77,9 +77,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
 
 ## Logging (MLOG)
 
-- **MLOG-1** Log structured entries through a JSON logger the project already uses or a core logger with a JSON layout in the application's `log4j2.xml`, with the correlation id at the start and end of each inbound flow, and on every error.
+- **MLOG-1** Log structured entries through a JSON logger the project already uses or a core logger with a JSON layout in the application's `log4j2.xml`, with the correlation id at the start and end of each inbound flow, and on every error. When `log4j2.xml` is shared and may not change, a core logger writes each entry as one line of JSON text and the report says the layout is unchanged. The verified examples use `message='#[output application/json indent=false --- { event: "orders.entry", correlationId: correlationId }]'`; `output text/plain --- write({...}, "application/json", { indent: false })` also works (seen in a real application). A `write` with no `output text/plain` was logged there as a quoted, escaped string.
   Why: the correlation id is the only way to follow one call across APIs, and structured entries can be searched by it in the log platform.
-  Check: the listener flows log `correlationId` at entry, exit and in the error handler; no core `<logger>` in new flows unless `log4j2.xml` gives it a JSON layout.
+  Check: the listener flows log `correlationId` at entry, exit and in the error handler; no core `<logger>` in new flows unless `log4j2.xml` gives it a JSON layout or, where `log4j2.xml` may not change, its message is one line of JSON text.
   Class: auto
 
 - **MLOG-2** (floor) Never log a full payload or personal data at INFO or above; log identifiers.

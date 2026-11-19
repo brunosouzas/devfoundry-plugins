@@ -18,8 +18,14 @@ What is particular to testing Mule 4 applications with MUnit 3. `${CLAUDE_SKILL_
 5. **Cover the error paths:** one test per mapped error type, triggered by a mock that raises it (MUNIT-2), plus the router's 400 for an invalid parameter. A test that asserts or verifies anything after the error catches it with `try` and `on-error-continue` and asserts the caught error type; `expectedErrorType` skips the `munit:validation` when the error is raised (MUNIT-7).
 6. **Verify:** `mvn clean test` (or `verify`) runs the suites and the coverage gate (MUNIT-3). Read a failure's cause before changing the test: a test changed to pass hides the defect it found.
 
+## Pitfalls
+
+- **Lazy initialization hides missing configuration.** MUnit creates only what a test reaches, so a properties file nothing loads, or a global element with a wrong reference, fails only in the first test that needs it, often the first one through the listener. When a listener test fails on a placeholder, check that a `configuration-properties` loads the file the flow reads.
+- **An empty `munit:behavior` breaks the XML schema,** and the whole application then fails to deploy, every suite with it. Leave the element out.
+- **A suite that uses `doc:name` declares `xmlns:doc`,** like a flow file.
+
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks MUNIT-5 (munit 1.1.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks MUNIT-5 (munit 1.2.0)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.

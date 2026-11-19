@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- The other thirteen gaps from the first use on a real repository. The behaviours they rest on were reproduced in a Mule 4.9.5 project first (a `raise-error` inside a handler, a hyphen in a module path, an empty `munit:behavior`), or seen in that repository. `mule-engineering` 1.2.0, `api-contracts` 1.1.0, `api-first` 1.0.1, `integration-patterns` 1.0.2, `resilience-patterns` 1.2.0.
+  - `mule-app`: LAYOUT-2 and MERR-1 say what a new file or flow does in an existing project with another layout or no global handler; MLOG-1 gives the one-line JSON text form for a shared `log4j2.xml`, and why a `write` without `output text/plain` is logged escaped; CFG-3 says a properties file is global to the application; the steps say to translate an error with `error-mapping`, since a `raise-error` inside a handler logs an ERROR with a stack trace even with `logException="false"`.
+  - `munit`: pitfalls for lazy initialization, an empty `munit:behavior` (the whole application fails to deploy) and `xmlns:doc`.
+  - `dataweave` DW-1: every folder on a module's path is an identifier; `dwl::order-status::...` fails to parse.
+  - `api-contracts` NFR-1: the values a pattern chose go in the spec's description.
+  - `api-first`: a `docs/<slug>/requirements.md` is a requirements source.
+  - `integration-patterns`: a read-only flow gets a one-line "not applied".
+  - `resilience-patterns`: a bounded fan-out whose N is bounded but whose worst case goes past what the caller waits still takes the budget and the bounded concurrency, in the reference and in the skill's matching table; the fan-out example raises its exhausted-retries error after the `try`, not inside the handler (three ERROR logs in its tests down to one, from the session renewal, which the reference explains).
 - Three rules from the first use of the plugins on a real repository, each behaviour reproduced in a Mule 4.9.5 project with MUnit 3.4 before the rule was written. `mule-engineering` 1.1.0, `resilience-patterns` 1.1.0, `integration-patterns` 1.0.1.
   - MUNIT-7 (`auto`): a test that asserts or verifies anything after the flow fails catches the error with `try` and `on-error-continue`; never `expectedErrorType` with a `munit:validation`, which MUnit then skips, so the test passes whatever the flow did.
   - MERR-3 now asks for a connection timeout from a property too (`sockets:tcp-client-socket-properties connectionTimeout`): `responseTimeout` does not bound the TCP connect, and a host that did not answer the connect failed after about 30 s instead of 2.2 s with a 1 s connection timeout. Every HTTP request config of the verified applications sets one, and the resilience references count it in every worst case (retry, circuit breaker, the bounded fan-out's budget).

@@ -105,6 +105,7 @@
   <sub-flow name="carrier-search-shipments" doc:description="Searches the carrier for the ids of vars.shipmentDate's shipments, retrying transient failures inside the budget; called through call-carrier-with-session.">
     <set-variable variableName="permanentError" value="#[null]" doc:name="Clear the permanent error"/>
     <set-variable variableName="lastTransientError" value="#[null]" doc:name="Clear the transient error"/>
+    <set-variable variableName="retriesExhausted" value="#[false]" doc:name="Clear the exhausted flag"/>
     <try doc:name="Search with retries">
       <until-successful maxRetries="${carrier.retry.maxRetries}" millisBetweenRetries="${carrier.retry.delayMillis}" doc:name="Retry transient failures">
         <try doc:name="Search once">
@@ -126,17 +127,21 @@
         </try>
       </until-successful>
       <error-handler doc:name="Retries exhausted">
-        <on-error-propagate type="MULE:RETRY_EXHAUSTED" doc:name="On retries exhausted">
-          <flow-ref name="raise-exhausted-error" doc:name="Raise the exhausted error"/>
-        </on-error-propagate>
+        <!-- Keep the fact and raise after the try: a raise-error inside an error handler logs an ERROR with a stack trace
+             ("Exception during exception strategy execution"), even with logException="false". -->
+        <on-error-continue type="MULE:RETRY_EXHAUSTED" logException="false" doc:name="On retries exhausted">
+          <set-variable variableName="retriesExhausted" value="#[true]" doc:name="Keep that the retries ran out"/>
+        </on-error-continue>
       </error-handler>
     </try>
+    <flow-ref name="raise-exhausted-error" doc:name="Raise the exhausted error, if any"/>
     <flow-ref name="raise-permanent-error" doc:name="Raise the permanent error, if any"/>
   </sub-flow>
 
   <sub-flow name="carrier-get-shipment" doc:description="Reads one shipment (vars.shipmentId) from the carrier, retrying transient failures inside the budget; called through call-carrier-with-session for each id of the search.">
     <set-variable variableName="permanentError" value="#[null]" doc:name="Clear the permanent error"/>
     <set-variable variableName="lastTransientError" value="#[null]" doc:name="Clear the transient error"/>
+    <set-variable variableName="retriesExhausted" value="#[false]" doc:name="Clear the exhausted flag"/>
     <try doc:name="Read with retries">
       <until-successful maxRetries="${carrier.retry.maxRetries}" millisBetweenRetries="${carrier.retry.delayMillis}" doc:name="Retry transient failures">
         <try doc:name="Read once">
@@ -158,11 +163,14 @@
         </try>
       </until-successful>
       <error-handler doc:name="Retries exhausted">
-        <on-error-propagate type="MULE:RETRY_EXHAUSTED" doc:name="On retries exhausted">
-          <flow-ref name="raise-exhausted-error" doc:name="Raise the exhausted error"/>
-        </on-error-propagate>
+        <!-- Keep the fact and raise after the try: a raise-error inside an error handler logs an ERROR with a stack trace
+             ("Exception during exception strategy execution"), even with logException="false". -->
+        <on-error-continue type="MULE:RETRY_EXHAUSTED" logException="false" doc:name="On retries exhausted">
+          <set-variable variableName="retriesExhausted" value="#[true]" doc:name="Keep that the retries ran out"/>
+        </on-error-continue>
       </error-handler>
     </try>
+    <flow-ref name="raise-exhausted-error" doc:name="Raise the exhausted error, if any"/>
     <flow-ref name="raise-permanent-error" doc:name="Raise the permanent error, if any"/>
   </sub-flow>
 
@@ -175,14 +183,14 @@
   </sub-flow>
 
   <!-- After the last attempt: a timeout is 504, any other transient failure 503 (mule-app MERR-3). -->
-  <sub-flow name="raise-exhausted-error" doc:description="Raises CARRIER:TIMEOUT when the last failed attempt timed out, CARRIER:UNAVAILABLE otherwise; called when a carrier call runs out of retries.">
+  <sub-flow name="raise-exhausted-error" doc:description="When a carrier call ran out of retries, raises CARRIER:TIMEOUT if the last failed attempt timed out and CARRIER:UNAVAILABLE otherwise; called after each carrier call.">
     <choice doc:name="Timeout or unavailable">
-      <when expression="#[vars.lastTransientError == 'HTTP:TIMEOUT']">
+      <when expression="#[vars.retriesExhausted and vars.lastTransientError == 'HTTP:TIMEOUT']">
         <raise-error type="CARRIER:TIMEOUT" description="The carrier did not answer in time, after its retries" doc:name="Raise carrier timeout"/>
       </when>
-      <otherwise>
+      <when expression="#[vars.retriesExhausted]">
         <raise-error type="CARRIER:UNAVAILABLE" description="The carrier failed after its retries" doc:name="Raise carrier unavailable"/>
-      </otherwise>
+      </when>
     </choice>
   </sub-flow>
 
