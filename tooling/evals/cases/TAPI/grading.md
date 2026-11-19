@@ -12,7 +12,7 @@ One run per arm is the usual size (Opus, 30-60 minutes, about USD 8-12 a run): a
 
 ## How to run
 
-- Arms: `run-baseline.sh TAPI <n> ...` and `run-plugin.sh TAPI <n> ... <every plugin dir>`. Both pre-approve only `mvn`.
+- Arms: `run-baseline.sh TAPI <n> ...` and `run-plugin.sh TAPI <n> ... <every plugin dir>`. Both pre-approve `mvn`; Claude Code may allow other commands inside the run's folder, the same in both arms.
   The project's MUnit tests need MuleSoft's EE repository in `~/.m2/settings.xml`, like `verify-examples.sh`.
 - Build: `mvn clean test` in the run's project (E1).
 - Script items: `python3 -I cases/TAPI/grade.py <run project dir>`.
@@ -40,6 +40,10 @@ Each item PASS or FAIL with evidence. 15 items.
 | E2 | MUnit covers both endpoints with WRS mocked by the samples (and by mocks the run builds for the login and `JobSearch`, which have no sample), at least one filter or exclusion case and one error case | script (`E2-counts`: at least 4 new tests and 1 mock) plus review |
 | F1 | The profile's naming is followed by the new code (each key of `engineering/profile.yaml`); the script expects the work in private flows `wrk-jobs-list-flow` and `wrk-jobs-get-flow` called by the APIkit flows | script (`F1`) |
 | F2 | The template is kept: its audit, error handler, health check and logging are reused, not replaced or removed | review |
+
+## Calibration (2026-11-19, Opus 5.5, one run per arm)
+
+Baseline 13/15 (D2 and F1 failed), devFoundry 15/15; both build. Both missed a new login when WRS ends a session early. The case is solvable and separates the arms on the integration decisions (D2) and the profile's names (F1).
 
 ## Notes
 

@@ -19,7 +19,7 @@ case "$case_id" in
   T3bB) t=T3b; profile=profile-b.yaml;;
   *) echo "unknown case $case_id" >&2; exit 2;;
 esac
-# The full-API benchmark builds and tests its project: only mvn is pre-approved, nothing else.
+# The full-API benchmark builds and tests its project: mvn is pre-approved (a pre-approval, not a limit; see README.md).
 extra=(); [ "$t" = TAPI ] && extra=(--allowedTools "Bash(mvn:*)")
 if [ "$t" = TAPI ]; then  # Maven 3.9 and Java 17 first on PATH: 3.10 breaks the Mule plugins (README, Requirements)
   mvn39="${MVN:-$HOME/.local/share/mise/installs/maven/3.9.15/apache-maven-3.9.15/bin/mvn}"
