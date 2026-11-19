@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The global error handler: each error type gets a status and a fixed body, never the carrier's own message. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <error-handler name="common-error-handler" doc:name="Common error handler">
+    <on-error-propagate type="APP:BAD_REQUEST" doc:name="On bad request">
+      <set-variable variableName="httpStatus" value="400" doc:name="Set status 400"/>
+      <set-payload value='#[output application/json --- { code: "BAD_REQUEST", message: "date must be yyyy-MM-dd" }]' doc:name="Build bad request error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <!-- The bound of the fan-out: the caller narrows the search instead of waiting for a request that cannot finish. -->
+    <on-error-propagate type="APP:TOO_MANY_RESULTS" doc:name="On too many results">
+      <set-variable variableName="httpStatus" value="422" doc:name="Set status 422"/>
+      <set-payload value='#[output application/json --- { code: "TOO_MANY_RESULTS", message: "The search matches too many shipments; narrow it" }]' doc:name="Build too many results error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <!-- The time budget is spent: a system behind the API was too slow, so 504, never 408. -->
+    <on-error-propagate type="APP:BUDGET_EXCEEDED" doc:name="On budget exceeded">
+      <set-variable variableName="httpStatus" value="504" doc:name="Set status 504"/>
+      <set-payload value='#[output application/json --- { code: "UPSTREAM_TIMEOUT", message: "A system behind this API did not answer in time" }]' doc:name="Build timeout error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <!-- A carrier call that timed out, after its retries: 504 (mule-app MERR-3). -->
+    <on-error-propagate type="CARRIER:TIMEOUT, HTTP:TIMEOUT" doc:name="On carrier timeout">
+      <set-variable variableName="httpStatus" value="504" doc:name="Set status 504"/>
+      <set-payload value='#[output application/json --- { code: "UPSTREAM_TIMEOUT", message: "A system behind this API did not answer in time" }]' doc:name="Build timeout error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <on-error-propagate type="CARRIER:UNAVAILABLE, HTTP:CONNECTIVITY" doc:name="On carrier unavailable">
+      <set-variable variableName="httpStatus" value="503" doc:name="Set status 503"/>
+      <set-payload value='#[output application/json --- { code: "UPSTREAM_UNAVAILABLE", message: "A system behind this API is unavailable" }]' doc:name="Build unavailable error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <on-error-propagate type="CARRIER:SESSION_REJECTED, CARRIER:LOGIN_FAILED, CARRIER:BAD_RESPONSE" doc:name="On carrier error">
+      <set-variable variableName="httpStatus" value="502" doc:name="Set status 502"/>
+      <set-payload value='#[output application/json --- { code: "UPSTREAM_ERROR", message: "A system behind this API answered with an error" }]' doc:name="Build upstream error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <on-error-propagate type="ANY" doc:name="On any other error">
+      <set-variable variableName="httpStatus" value="500" doc:name="Set status 500"/>
+      <set-payload value='#[output application/json --- { code: "INTERNAL_ERROR", message: "Unexpected error" }]' doc:name="Build internal error"/>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+  </error-handler>
+
+  <sub-flow name="log-request-failed" doc:description="Logs a failed request with its correlation id and error type; called by every case of the global error handler.">
+    <logger level="ERROR" doc:name="Log request failed" message='#[output application/json indent=false --- { event: "request.failed", correlationId: correlationId, errorType: (error.errorType.namespace default "") ++ ":" ++ (error.errorType.identifier default ""), status: vars.httpStatus }]'/>
+  </sub-flow>
+</mule>

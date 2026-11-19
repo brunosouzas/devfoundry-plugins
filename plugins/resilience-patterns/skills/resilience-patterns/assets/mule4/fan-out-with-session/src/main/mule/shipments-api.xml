@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The entry point: GET /api/shipments?date=yyyy-MM-dd lists the day's shipments with their details. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+  <flow name="shipments-api-main" doc:description="Receives GET /api/shipments, logs it, and answers with the shipments or the error the global handler built.">
+    <http:listener config-ref="shipments-api-listener-config" path="/api/shipments" allowedMethods="GET" doc:name="Listen for shipment requests">
+      <http:response statusCode="#[vars.httpStatus default 200]"/>
+      <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body>#[payload]</http:body>
+      </http:error-response>
+    </http:listener>
+    <logger level="INFO" doc:name="Log request received" message='#[output application/json indent=false --- { event: "request.received", correlationId: correlationId }]'/>
+    <set-variable variableName="shipmentDate" value="#[attributes.queryParams.date default '']" doc:name="Read the date"/>
+    <flow-ref name="list-shipments" doc:name="List the shipments"/>
+    <logger level="INFO" doc:name="Log request answered" message='#[output application/json indent=false --- { event: "request.answered", correlationId: correlationId, items: sizeOf(payload) }]'/>
+  </flow>
+</mule>

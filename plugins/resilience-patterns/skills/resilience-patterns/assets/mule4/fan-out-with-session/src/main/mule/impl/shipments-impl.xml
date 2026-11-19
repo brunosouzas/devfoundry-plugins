@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A bounded fan-out with a time budget: one search, then one detail call per id, at most shipments.maxItems ids,
+     at most shipments.fanOut.maxConcurrency calls at once, and no call started after the request's deadline. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <sub-flow name="list-shipments" doc:description="Lists vars.shipmentDate's shipments with their details inside the request's time budget; called by shipments-api-main.">
+    <choice doc:name="Check the date">
+      <when expression="#[not (vars.shipmentDate matches /\d{4}-\d{2}-\d{2}/)]">
+        <raise-error type="APP:BAD_REQUEST" description="date must be yyyy-MM-dd" doc:name="Raise bad request"/>
+      </when>
+    </choice>
+    <!-- The deadline of the whole request, set once: an outer deadline when the caller of this sub-flow set one
+         (a test sets it in the past), otherwise now plus the budget. Every carrier attempt and login checks it. -->
+    <set-variable variableName="deadlineMillis" doc:name="Set the request deadline"
+                  value="#[output application/java --- vars.deadlineMillis default ((now() as Number {unit: 'milliseconds'}) + (p('shipments.budgetMillis') as Number))]"/>
+
+    <set-variable variableName="carrierCall" value="carrier-search-shipments" doc:name="Choose the search call"/>
+    <flow-ref name="call-carrier-with-session" doc:name="Search the shipments"/>
+    <set-variable variableName="shipmentIds" value="#[output application/java --- payload.ids default []]" doc:name="Keep the shipment ids"/>
+
+    <!-- The bound: more ids than the API can read in its budget is refused before a single detail call. -->
+    <choice doc:name="Check the number of shipments">
+      <when expression="#[sizeOf(vars.shipmentIds) > (p('shipments.maxItems') as Number)]">
+        <raise-error type="APP:TOO_MANY_RESULTS" description="#['The search returned ' ++ (sizeOf(vars.shipmentIds) as String) ++ ' shipments']" doc:name="Raise too many results"/>
+      </when>
+    </choice>
+
+    <!-- Each route catches its own failure and reports it, so the result below can map it to one defined error.
+         Without this, a failure inside parallel-foreach reaches the caller as MULE:COMPOSITE_ROUTING. -->
+    <parallel-foreach collection="#[vars.shipmentIds]" maxConcurrency="${shipments.fanOut.maxConcurrency}" doc:name="Read each shipment">
+      <try doc:name="Read one shipment">
+        <flow-ref name="check-deadline" doc:name="Check the deadline"/>
+        <set-variable variableName="shipmentId" value="#[payload]" doc:name="Keep the shipment id"/>
+        <set-variable variableName="carrierCall" value="carrier-get-shipment" doc:name="Choose the shipment call"/>
+        <flow-ref name="call-carrier-with-session" doc:name="Get the shipment"/>
+        <set-payload value="#[output application/java --- { ok: true, shipment: payload }]" doc:name="Report the shipment"/>
+        <error-handler doc:name="Report the failure">
+          <on-error-continue doc:name="On a failed shipment">
+            <set-payload value="#[output application/java --- { ok: false, errorType: error.errorType.namespace ++ ':' ++ error.errorType.identifier }]" doc:name="Report the failure type"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </parallel-foreach>
+    <set-variable variableName="outcomes" value="#[output application/java --- payload map $.payload]" doc:name="Keep the outcomes"/>
+    <set-variable variableName="failedTypes" value="#[output application/java --- (vars.outcomes filter (not $.ok)) map $.errorType]" doc:name="Keep the failure types"/>
+
+    <!-- One failed shipment fails the request, with the most telling cause first. Returning the shipments that did
+         succeed, flagged as partial, is the other choice; the API's contract decides which. -->
+    <choice doc:name="Map a failure to one error">
+      <when expression="#[vars.failedTypes contains 'APP:BUDGET_EXCEEDED']">
+        <raise-error type="APP:BUDGET_EXCEEDED" description="The request's time budget is spent" doc:name="Raise budget exceeded"/>
+      </when>
+      <when expression="#[(vars.failedTypes contains 'CARRIER:SESSION_REJECTED') or (vars.failedTypes contains 'CARRIER:LOGIN_FAILED')]">
+        <raise-error type="CARRIER:SESSION_REJECTED" description="The carrier rejected the session" doc:name="Raise session rejected"/>
+      </when>
+      <when expression="#[vars.failedTypes contains 'CARRIER:TIMEOUT']">
+        <raise-error type="CARRIER:TIMEOUT" description="The carrier did not answer in time" doc:name="Raise carrier timeout"/>
+      </when>
+      <when expression="#[vars.failedTypes contains 'CARRIER:UNAVAILABLE']">
+        <raise-error type="CARRIER:UNAVAILABLE" description="The carrier failed after its retries" doc:name="Raise carrier unavailable"/>
+      </when>
+      <when expression="#[not isEmpty(vars.failedTypes)]">
+        <raise-error type="CARRIER:BAD_RESPONSE" description="A shipment read failed" doc:name="Raise bad response"/>
+      </when>
+    </choice>
+
+    <ee:transform doc:name="Build the shipments response">
+      <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+vars.outcomes map (o) -> {
+  id: o.shipment.id,
+  status: o.shipment.status,
+  carrierReference: o.shipment.reference
+}]]></ee:set-payload></ee:message>
+    </ee:transform>
+  </sub-flow>
+</mule>

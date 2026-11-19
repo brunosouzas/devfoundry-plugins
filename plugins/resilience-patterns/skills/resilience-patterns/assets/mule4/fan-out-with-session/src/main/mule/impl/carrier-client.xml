@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The carrier client: a cached session, renewed once when the carrier rejects it, reads retried on transient
+     failures only, and no attempt started after the request's deadline (vars.deadlineMillis). -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <!-- Session renewal. vars.carrierCall names the carrier call to run. When the carrier rejects the session
+       (CARRIER:SESSION_REJECTED), the flow gets a valid session and runs the call once more. A second rejection
+       propagates: never a loop. -->
+  <sub-flow name="call-carrier-with-session" doc:description="Runs the carrier call named in vars.carrierCall with a session; when the carrier rejects the session, gets a valid one and repeats the call once.">
+    <flow-ref name="get-carrier-session" doc:name="Get a carrier session"/>
+    <try doc:name="Call the carrier, renewing a rejected session once">
+      <flow-ref name="run-carrier-call" doc:name="Run the carrier call"/>
+      <error-handler doc:name="Session renewal">
+        <on-error-continue type="CARRIER:SESSION_REJECTED" doc:name="On session rejected">
+          <logger level="WARN" doc:name="Log session rejected" message='#[output application/json indent=false --- { event: "carrier.session.rejected", correlationId: correlationId, call: vars.carrierCall }]'/>
+          <flow-ref name="replace-rejected-session" doc:name="Replace the rejected session"/>
+          <flow-ref name="run-carrier-call" doc:name="Run the carrier call once more"/>
+        </on-error-continue>
+      </error-handler>
+    </try>
+    </sub-flow>
+
+  <!-- The cached session, or a new one. A single retrieve with a default (an empty string: os:retrieve does not accept a
+       null default): a contains-then-retrieve pair can lose the entry to a concurrent renewal between the two. -->
+  <sub-flow name="get-carrier-session" doc:description="Sets vars.carrierSessionId from the cache, or logs in to the carrier and caches the new session; called before every carrier call.">
+    <os:retrieve key="carrier-session" objectStore="carrier-session-store" target="carrierSessionId" doc:name="Read the cached session">
+      <os:default-value>#[""]</os:default-value>
+    </os:retrieve>
+    <choice doc:name="Log in when there is no session">
+      <when expression="#[isEmpty(vars.carrierSessionId as String)]">
+        <flow-ref name="log-in-to-carrier" doc:name="Log in"/>
+      </when>
+    </choice>
+  </sub-flow>
+
+  <!-- Concurrent routes can all see the same rejection. Only a route whose rejected session is still the cached one
+       drops it and logs in; a route that finds a newer session reuses it. Two routes can still log in at the same
+       moment (both read the old session before either stores a new one): harmless here; a dependency that allows one
+       session per user needs the calls made one at a time instead. The parentheses around "not ..." matter: in
+       DataWeave "not a and b" is "not (a and b)". -->
+  <sub-flow name="replace-rejected-session" doc:description="Replaces the rejected vars.carrierSessionId: reuses a newer cached session, or drops the rejected one and logs in; called by call-carrier-with-session on a rejection.">
+    <os:retrieve key="carrier-session" objectStore="carrier-session-store" target="cachedSession" doc:name="Read the cached session again">
+      <os:default-value>#[""]</os:default-value>
+    </os:retrieve>
+    <choice doc:name="Newer session or log in">
+      <when expression="#[(not isEmpty(vars.cachedSession as String)) and ((vars.cachedSession as String) != (vars.carrierSessionId as String))]">
+        <set-variable variableName="carrierSessionId" value="#[vars.cachedSession]" doc:name="Reuse the newer session"/>
+      </when>
+      <otherwise>
+        <try doc:name="Drop the rejected session">
+          <os:remove key="carrier-session" objectStore="carrier-session-store" doc:name="Remove the cached session"/>
+          <error-handler doc:name="Session already dropped">
+            <on-error-continue type="OS:KEY_NOT_FOUND" doc:name="On session already removed">
+              <logger level="DEBUG" doc:name="Log session already removed" message="carrier session already removed"/>
+            </on-error-continue>
+          </error-handler>
+        </try>
+        <flow-ref name="log-in-to-carrier" doc:name="Log in again"/>
+      </otherwise>
+    </choice>
+  </sub-flow>
+
+  <sub-flow name="log-in-to-carrier" doc:description="Logs in to the carrier, unless the request's deadline has passed, and caches the new session in vars.carrierSessionId; called when there is no valid session.">
+    <flow-ref name="check-deadline" doc:name="Check the deadline before the login"/>
+    <!-- A real login sends credentials read from secure properties (FLOOR-2); this synthetic carrier needs none.
+         A login that times out is 504 and one that cannot connect is 503, like any other carrier call. -->
+    <http:request config-ref="carrier-request-config" method="POST" path="/login" doc:name="Log in to carrier">
+      <error-mapping sourceType="HTTP:UNAUTHORIZED" targetType="CARRIER:LOGIN_FAILED"/>
+      <error-mapping sourceType="HTTP:FORBIDDEN" targetType="CARRIER:LOGIN_FAILED"/>
+      <error-mapping sourceType="HTTP:TIMEOUT" targetType="CARRIER:TIMEOUT"/>
+      <error-mapping sourceType="HTTP:CONNECTIVITY" targetType="CARRIER:UNAVAILABLE"/>
+    </http:request>
+    <set-variable variableName="carrierSessionId" value="#[payload.sessionId]" doc:name="Keep the new session"/>
+    <os:store key="carrier-session" objectStore="carrier-session-store" doc:name="Cache the new session">
+      <os:value>#[vars.carrierSessionId]</os:value>
+    </os:store>
+  </sub-flow>
+
+  <!-- Picks the carrier call by name with static references. A dynamic flow-ref (name="#[vars.carrierCall]") would
+       save this choice, but under MUnit's lazy initialization the flow only a dynamic reference reaches is never
+       created, and the tests fail with "No flow/sub-flow with name ... found". -->
+  <sub-flow name="run-carrier-call" doc:description="Runs the carrier call that vars.carrierCall names; called by call-carrier-with-session, once or twice.">
+    <choice doc:name="Which carrier call">
+      <when expression="#[vars.carrierCall == 'carrier-search-shipments']">
+        <flow-ref name="carrier-search-shipments" doc:name="Search the shipments"/>
+      </when>
+      <otherwise>
+        <flow-ref name="carrier-get-shipment" doc:name="Get the shipment"/>
+      </otherwise>
+    </choice>
+  </sub-flow>
+
+  <!-- The two carrier calls. Each is a read, so repeating it is safe: it is retried on a transient failure (timeout,
+       connection, 502, 503, 504) and never on an answer that will not change (401, 404, 400). Every attempt first
+       checks the deadline, so the retries stay inside the request's budget: the request overruns it by at most one
+       attempt's timeout. -->
+  <sub-flow name="carrier-search-shipments" doc:description="Searches the carrier for the ids of vars.shipmentDate's shipments, retrying transient failures inside the budget; called through call-carrier-with-session.">
+    <set-variable variableName="permanentError" value="#[null]" doc:name="Clear the permanent error"/>
+    <set-variable variableName="lastTransientError" value="#[null]" doc:name="Clear the transient error"/>
+    <try doc:name="Search with retries">
+      <until-successful maxRetries="${carrier.retry.maxRetries}" millisBetweenRetries="${carrier.retry.delayMillis}" doc:name="Retry transient failures">
+        <try doc:name="Search once">
+          <flow-ref name="check-deadline" doc:name="Check the deadline before the attempt"/>
+          <http:request config-ref="carrier-request-config" method="GET" path="/shipments" doc:name="Search carrier shipments">
+            <error-mapping sourceType="HTTP:UNAUTHORIZED" targetType="CARRIER:SESSION_REJECTED"/>
+            <http:headers>#[{ "X-Session": vars.carrierSessionId }]</http:headers>
+            <http:query-params>#[{ date: vars.shipmentDate }]</http:query-params>
+          </http:request>
+          <error-handler doc:name="Transient or permanent">
+            <on-error-propagate type="HTTP:TIMEOUT, HTTP:CONNECTIVITY, HTTP:BAD_GATEWAY, HTTP:SERVICE_UNAVAILABLE, HTTP:GATEWAY_TIMEOUT" doc:name="On transient failure, retry">
+              <set-variable variableName="lastTransientError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]" doc:name="Keep the transient error"/>
+              <logger level="WARN" doc:name="Log transient failure" message='#[output application/json indent=false --- { event: "carrier.retry", correlationId: correlationId, call: "search", errorType: vars.lastTransientError }]'/>
+            </on-error-propagate>
+            <on-error-continue doc:name="On permanent failure, stop">
+              <set-variable variableName="permanentError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]" doc:name="Keep the permanent error"/>
+            </on-error-continue>
+          </error-handler>
+        </try>
+      </until-successful>
+      <error-handler doc:name="Retries exhausted">
+        <on-error-propagate type="MULE:RETRY_EXHAUSTED" doc:name="On retries exhausted">
+          <flow-ref name="raise-exhausted-error" doc:name="Raise the exhausted error"/>
+        </on-error-propagate>
+      </error-handler>
+    </try>
+    <flow-ref name="raise-permanent-error" doc:name="Raise the permanent error, if any"/>
+  </sub-flow>
+
+  <sub-flow name="carrier-get-shipment" doc:description="Reads one shipment (vars.shipmentId) from the carrier, retrying transient failures inside the budget; called through call-carrier-with-session for each id of the search.">
+    <set-variable variableName="permanentError" value="#[null]" doc:name="Clear the permanent error"/>
+    <set-variable variableName="lastTransientError" value="#[null]" doc:name="Clear the transient error"/>
+    <try doc:name="Read with retries">
+      <until-successful maxRetries="${carrier.retry.maxRetries}" millisBetweenRetries="${carrier.retry.delayMillis}" doc:name="Retry transient failures">
+        <try doc:name="Read once">
+          <flow-ref name="check-deadline" doc:name="Check the deadline before the attempt"/>
+          <http:request config-ref="carrier-request-config" method="GET" path="/shipments/{id}" doc:name="Get carrier shipment">
+            <error-mapping sourceType="HTTP:UNAUTHORIZED" targetType="CARRIER:SESSION_REJECTED"/>
+            <http:headers>#[{ "X-Session": vars.carrierSessionId }]</http:headers>
+            <http:uri-params>#[{ id: vars.shipmentId }]</http:uri-params>
+          </http:request>
+          <error-handler doc:name="Transient or permanent">
+            <on-error-propagate type="HTTP:TIMEOUT, HTTP:CONNECTIVITY, HTTP:BAD_GATEWAY, HTTP:SERVICE_UNAVAILABLE, HTTP:GATEWAY_TIMEOUT" doc:name="On transient failure, retry">
+              <set-variable variableName="lastTransientError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]" doc:name="Keep the transient error"/>
+              <logger level="WARN" doc:name="Log transient failure" message='#[output application/json indent=false --- { event: "carrier.retry", correlationId: correlationId, call: "shipment", errorType: vars.lastTransientError }]'/>
+            </on-error-propagate>
+            <on-error-continue doc:name="On permanent failure, stop">
+              <set-variable variableName="permanentError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]" doc:name="Keep the permanent error"/>
+            </on-error-continue>
+          </error-handler>
+        </try>
+      </until-successful>
+      <error-handler doc:name="Retries exhausted">
+        <on-error-propagate type="MULE:RETRY_EXHAUSTED" doc:name="On retries exhausted">
+          <flow-ref name="raise-exhausted-error" doc:name="Raise the exhausted error"/>
+        </on-error-propagate>
+      </error-handler>
+    </try>
+    <flow-ref name="raise-permanent-error" doc:name="Raise the permanent error, if any"/>
+  </sub-flow>
+
+  <sub-flow name="check-deadline" doc:description="Raises APP:BUDGET_EXCEEDED once the request's deadline (vars.deadlineMillis) has passed; called before every carrier attempt and login.">
+    <choice doc:name="Deadline passed?">
+      <when expression="#[vars.deadlineMillis != null and (now() as Number {unit: 'milliseconds'}) > vars.deadlineMillis]">
+        <raise-error type="APP:BUDGET_EXCEEDED" description="The request's time budget is spent" doc:name="Raise budget exceeded"/>
+      </when>
+    </choice>
+  </sub-flow>
+
+  <!-- After the last attempt: a timeout is 504, any other transient failure 503 (mule-app MERR-3). -->
+  <sub-flow name="raise-exhausted-error" doc:description="Raises CARRIER:TIMEOUT when the last failed attempt timed out, CARRIER:UNAVAILABLE otherwise; called when a carrier call runs out of retries.">
+    <choice doc:name="Timeout or unavailable">
+      <when expression="#[vars.lastTransientError == 'HTTP:TIMEOUT']">
+        <raise-error type="CARRIER:TIMEOUT" description="The carrier did not answer in time, after its retries" doc:name="Raise carrier timeout"/>
+      </when>
+      <otherwise>
+        <raise-error type="CARRIER:UNAVAILABLE" description="The carrier failed after its retries" doc:name="Raise carrier unavailable"/>
+      </otherwise>
+    </choice>
+  </sub-flow>
+
+  <!-- A rejected session goes back to call-carrier-with-session, which renews it; a spent budget stays the budget; any
+       other permanent answer is a defined error, never the carrier's own message. -->
+  <sub-flow name="raise-permanent-error" doc:description="Raises the app error for a carrier call that ended on a permanent error (session rejected, budget spent, bad response); called after each carrier call.">
+    <choice doc:name="Which permanent error">
+      <when expression="#[vars.permanentError == 'CARRIER:SESSION_REJECTED']">
+        <raise-error type="CARRIER:SESSION_REJECTED" description="The carrier rejected the session" doc:name="Raise session rejected"/>
+      </when>
+      <when expression="#[vars.permanentError == 'APP:BUDGET_EXCEEDED']">
+        <raise-error type="APP:BUDGET_EXCEEDED" description="The request's time budget is spent" doc:name="Raise budget exceeded"/>
+      </when>
+      <when expression="#[vars.permanentError != null]">
+        <raise-error type="CARRIER:BAD_RESPONSE" description="#['The carrier answered ' ++ vars.permanentError]" doc:name="Raise bad response"/>
+      </when>
+    </choice>
+  </sub-flow>
+</mule>

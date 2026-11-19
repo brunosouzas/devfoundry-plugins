@@ -1,0 +1,30 @@
+http:
+  port: "8081"
+
+carrier:
+  protocol: "HTTP"
+  host: "localhost"
+  port: "9092"
+  # One call never waits longer than this. A slow call is cut here and counted as a failure.
+  responseTimeoutMillis: "2000"
+  session:
+    # The carrier ends a session after 20 minutes; cache it for less, so a cached session is usually still valid.
+    # It can still be rejected earlier (a restart on the carrier's side): the flow then logs in once more.
+    cacheMinutes: "15"
+  retry:
+    # Retries of a transient failure (timeout, connection, 502/503/504) of a read. Fixed delay: Mule's
+    # until-successful has no exponential backoff. Worst case per call: (maxRetries + 1) x timeout + maxRetries x delay.
+    maxRetries: "2"
+    delayMillis: "200"
+
+shipments:
+  # More items than this and the request is refused (422): the caller narrows the search instead of waiting.
+  # Sized on the carrier's usual latency (about 200 ms a call): 50 items at 4 at once is about 13 rounds, under 3 s.
+  # When the carrier is slow, the deadline below is the guard, not this number.
+  maxItems: "50"
+  # The deadline of the whole request. Every carrier attempt and login checks it first, so the request ends at most
+  # one call timeout (2 s) after it: 10 s + 2 s stays below the 15 s the caller waits.
+  budgetMillis: "10000"
+  fanOut:
+    # At most this many detail calls at once, so one request cannot take every connection to the carrier.
+    maxConcurrency: "4"

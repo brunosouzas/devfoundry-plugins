@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Global elements, defined once. Every value that changes per environment or per decision is a property. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <configuration-properties doc:name="Properties" file="properties/config.yaml"/>
+  <configuration doc:name="Application configuration" defaultErrorHandler-ref="common-error-handler"/>
+
+  <http:listener-config name="shipments-api-listener-config" doc:name="Shipments API listener config">
+    <http:listener-connection host="0.0.0.0" port="${http.port}"/>
+  </http:listener-config>
+
+  <!-- Every call to the carrier has its own response timeout, well below the request's time budget. -->
+  <http:request-config name="carrier-request-config" doc:name="Carrier request config" responseTimeout="${carrier.responseTimeoutMillis}">
+    <http:request-connection protocol="${carrier.protocol}" host="${carrier.host}" port="${carrier.port}"/>
+  </http:request-config>
+
+  <!-- The carrier's session, cached per worker for less than the carrier keeps it alive. One entry. -->
+  <os:object-store name="carrier-session-store" doc:name="Carrier session store" persistent="false"
+                   entryTtl="${carrier.session.cacheMinutes}" entryTtlUnit="MINUTES" maxEntries="1"/>
+</mule>
