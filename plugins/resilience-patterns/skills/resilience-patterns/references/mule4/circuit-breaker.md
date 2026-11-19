@@ -11,6 +11,8 @@ The why of each piece is in `../circuit-breaker.md`. This file is how to build i
 
 Mule 4 has no in-flow circuit breaker component for a synchronous HTTP call, so the state machine is built with an Object Store. A complete, built and tested project is in `${CLAUDE_SKILL_DIR}/assets/mule4/circuit-breaker/` (this skill's directory). `scripts/verify-examples.sh` builds it and runs its 5 MUnit tests. Its domain is a freight quote (`GET /quotes`, a carrier rates API). Adapt the names, the thresholds and the fallback to the flow at hand; do not copy its domain.
 
+Its file names and layout are the example's own; in a project with a profile, they come from the profile (`project-profile`).
+
 Read these files before writing the flow:
 
 | File | What it shows |

@@ -10,7 +10,7 @@ The why of each piece is in `../session-renewal.md`, `../bounded-fan-out.md` and
 
 ## The example
 
-A complete, built and tested project is in `${CLAUDE_SKILL_DIR}/assets/mule4/fan-out-with-session/` (this skill's directory). `scripts/verify-examples.sh` builds it and runs its 11 MUnit tests. Its domain is synthetic: `GET /api/shipments?date=` logs in to a carrier, searches the day's shipment ids, then reads each shipment. Adapt the names, the values and the error contract to the flow at hand; do not copy its domain.
+A complete, built and tested project is in `${CLAUDE_SKILL_DIR}/assets/mule4/fan-out-with-session/` (this skill's directory). `scripts/verify-examples.sh` builds it and runs its 11 MUnit tests. Its domain is synthetic: `GET /api/shipments?date=` logs in to a carrier, searches the day's shipment ids, then reads each shipment. Adapt the names, the values and the error contract to the flow at hand; do not copy its domain. The split into files (`impl/carrier-client.xml` next to `impl/shipments-impl.xml`) is the example's own choice: in a project with a profile, the files, folders and names come from the profile (`project-profile`), also for the client of a backend.
 
 | File | What it shows |
 | --- | --- |
