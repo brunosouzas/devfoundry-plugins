@@ -1,6 +1,6 @@
 {
   "name": "resilience-patterns",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Decides whether code that calls another system needs a resilience pattern against a slow or failing dependency, applies it only when its problem is present, and says why when it is not. Catalog: Circuit Breaker, session renewal, a bounded fan-out with a time budget, and retry of transient failures, each with a platform-neutral reference and a verified Mule 4 realization.",
   "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
   "homepage": "https://github.com/brunosouzas/devfoundry-plugins",
