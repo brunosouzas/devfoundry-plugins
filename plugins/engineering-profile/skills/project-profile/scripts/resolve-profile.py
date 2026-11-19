@@ -29,6 +29,9 @@ except ImportError:  # pragma: no cover
 ID = r"[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-\d+"
 RULE_LINE = re.compile(rf"^- \*\*({ID})\*\*(\s*\(floor\))?\s*(.*)$")
 NEW_ID = re.compile(rf"^{ID}$")
+CLASSES = ("auto", "propose", "ask")
+CLASS_LINE = re.compile(r"^\s+Class:\s*`?(\w+)`?\s*$")
+DEFAULT_CLASS = "auto"
 VERSIONS = {"engineering.poc/v0", "devfoundry/v1"}
 MULE_SECTIONS = ("naming", "precedence", "components")
 
@@ -59,15 +62,34 @@ def default_rules_roots(script=None):
     return roots or [plugin_root]
 
 
-def public_rules(roots):
+def public_rules(roots, errors=None):
+    """The rules of every rules.md under roots. A rule's block is its line and the indented lines right after it;
+    its `Class:` line must be in that block. A rule without one is `auto`; an unknown or repeated class is an error."""
     rules = {}
+    errors = [] if errors is None else errors
     for root in roots:
         for f in sorted(Path(root).rglob("rules.md")):
+            current = None
             for line in f.read_text().splitlines():
                 m = RULE_LINE.match(line)
-                if m and m.group(1) not in rules:
-                    rules[m.group(1)] = {"text": m.group(3).strip(), "floor": bool(m.group(2)),
-                                         "layer": "public", "source": str(f), "status": "active"}
+                if m:
+                    current = None
+                    if m.group(1) not in rules:
+                        current = m.group(1)
+                        rules[current] = {"text": m.group(3).strip(), "floor": bool(m.group(2)), "class": DEFAULT_CLASS,
+                                          "class_declared": False, "layer": "public", "source": str(f), "status": "active"}
+                    continue
+                if not line.startswith((" ", "\t")):  # a blank line, a heading or another paragraph ends the block
+                    current = None; continue
+                c = CLASS_LINE.match(line)
+                if c and current:
+                    rule = rules[current]
+                    if c.group(1) not in CLASSES:
+                        errors.append(f"{f}: {current}: Class must be one of {', '.join(CLASSES)}, got {c.group(1)!r}")
+                    elif rule["class_declared"]:
+                        errors.append(f"{f}: {current}: more than one Class line")
+                    else:
+                        rule.update({"class": c.group(1), "class_declared": True})
     return rules
 
 
@@ -120,7 +142,7 @@ def resolve(project, roots):
     profile_path = project / "engineering/profile.yaml"
     if not profile_path.is_file():
         return {"errors": [f"{profile_path}: not found"], "missing": True}
-    rules = public_rules(roots)
+    rules = public_rules(roots, errors)
     public_prefixes = {prefix(r) for r in rules}
     profile = load(profile_path, "EngineeringProfile", errors)
     if profile is None:
@@ -175,18 +197,34 @@ def resolve(project, roots):
             missing = [k for k in ("text", "why", "check") if not isinstance(item.get(k), str) or not item[k].strip()]
             if missing:
                 errors.append(f"{name}: add {rid} misses {', '.join(missing)}"); continue
-            rules[rid] = {"text": item["text"], "floor": False, "layer": name, "source": name, "status": "active"}
+            cls = item.get("class") if item.get("class") is not None else DEFAULT_CLASS
+            if cls not in CLASSES:
+                errors.append(f"{name}: add {rid}: class must be one of {', '.join(CLASSES)}, got {cls!r}"); continue
+            rules[rid] = {"text": item["text"], "floor": False, "class": cls, "layer": name, "source": name, "status": "active"}
             changes.append({"id": rid, "action": "add", "layer": name})
         for rid, spec in override.items():
             text = spec.get("text") if isinstance(spec, dict) else spec
+            cls = spec.get("class") if isinstance(spec, dict) else None
             if rid not in rules:
                 errors.append(f"{name}: override {rid}: no such rule"); continue
             if rules[rid]["floor"]:
                 refused.append({"id": rid, "action": "override", "layer": name}); continue
-            if not isinstance(text, str) or not text.strip():
-                errors.append(f"{name}: override {rid} needs the rule's text (a string, or a mapping with text)"); continue
-            changes.append({"id": rid, "action": "override", "layer": name, "was_layer": rules[rid]["layer"]})
-            rules[rid].update(text=text, layer=name, status="active")
+            if cls is not None and cls not in CLASSES:
+                errors.append(f"{name}: override {rid}: class must be one of {', '.join(CLASSES)}, got {cls!r}"); continue
+            if text is None and cls is not None:
+                text = rules[rid]["text"]
+            elif not isinstance(text, str) or not text.strip():
+                errors.append(f"{name}: override {rid} needs the rule's text or class (a string, or a mapping with text, class or both)"); continue
+            rule = rules[rid]
+            if rule["status"] == "active" and text == rule["text"] and cls in (None, rule["class"]):
+                continue  # the layer restates the rule as it is: nothing changes, nothing to report
+            change = {"id": rid, "action": "override", "layer": name, "was_layer": rule["layer"]}
+            if cls is not None and cls != rule["class"]:
+                change.update({"class": cls, "was_class": rule["class"]})
+            if rule["status"] == "disabled":
+                change["enabled_again"] = True
+            changes.append(change)
+            rules[rid].update(text=text, layer=name, status="active", **({"class": cls} if cls else {}))
         for rid, reason in disable.items():
             if rid not in rules:
                 errors.append(f"{name}: disable {rid}: no such rule"); continue
@@ -205,12 +243,18 @@ def report(res):
     out.append("Rules changed:" if res["changes"] else "Rules changed: none")
     for c in res["changes"]:
         extra = f" (was {c['was_layer']})" if c.get("was_layer") else ""
+        extra += f", class {c['was_class']} -> {c['class']}" if c.get("was_class") else ""
+        extra += ", enabled again" if c.get("enabled_again") else ""
         extra += f": {c['reason']}" if c.get("reason") else ""
         out.append(f"  {c['id']} {c['action']} by {c['layer']}{extra}")
     for r in res["refused"]:
         out.append(f"REFUSED {r['action']} of floor rule {r['id']} by {r['layer']}: the public rule stays")
     for r in res["replaced"]:
         out.append(f"REPLACED {r['key']}: {r['value']!r} ({r['layer']}) over {r['was']!r} ({r['was_layer']})")
+    if "rules" in res:
+        for cls in ("ask", "propose"):
+            ids = sorted(rid for rid, r in res["rules"].items() if r["status"] == "active" and r["class"] == cls)
+            out.append(f"Rules of class {cls}: " + (", ".join(ids) if ids else "none"))
     out.append("Effective mulesoft settings:")
     for section in MULE_SECTIONS:
         for k, v in res["mulesoft"][section].items():

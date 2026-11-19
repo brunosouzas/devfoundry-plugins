@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "api-first",
-      "description": "API-first implementation: requirements inventoried and numbered, contract before code, tests traced to each requirement, and a final check that no requirement was silently left out.",
+      "description": "API-first implementation: what exists reused first, requirements inventoried and numbered, contract before code, tests traced to each requirement, and a final check that no requirement was silently left out.",
       "author": {
         "name": "Bruno Souza"
       },

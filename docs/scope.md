@@ -33,7 +33,7 @@ The public layer never holds personal or company material, and never client data
 
 | Area | Plugin | Today | Missing |
 | --- | --- | --- | --- |
-| API-first implementation | `api-first` | `api-first-implementation`: requirements inventory, contract first, tests traced to requirements, final check (AFI-1 to AFI-3) | measured on the full-API case |
+| API-first implementation | `api-first` | `api-first-implementation`: reuse first, requirements inventory, contract first, tests traced to requirements, final check (AFI-1 to AFI-6) | measured on the full-API case |
 | API contract (spec) | `api-contracts` | contract first, RES, CON, APISEC | spec validation with real tooling |
 | Mule code | `mule-engineering` | `mule-app` (flows, layout, properties, errors, logs, build), `dataweave`, `apikit` | deploy and platform configuration stays out (delivery); naming conventions stay in profiles and private packs |
 | Unit tests | `mule-engineering` | `munit` (endpoints through HTTP, mocks, error paths) | small gaps only |
