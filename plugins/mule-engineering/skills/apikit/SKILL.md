@@ -1,6 +1,8 @@
 ---
 name: apikit
 description: Rules for the APIkit router of a Mule 4 API, with a verified example. Use when creating, changing or reviewing the endpoints of a Mule 4 application that has (or is asked to have) an APIkit router - apikit:config, apikit:router, implementation flows named like get:\resource:config, apikit:flow-mappings - or when an endpoint answers 404, 405 or NOT_IMPLEMENTED although its flow exists. Covers which spec the router loads (an Exchange dependency or a file in the project), how implementation flows match the spec, and how the listener flow answers the router's errors. Do NOT use it to add a router to a project that routes with plain listeners when nobody asked for one, for the spec's own content (api-contracts), for the logic behind the route (keep it in private flows), or for MUnit details beyond calling the router (munit).
+metadata:
+  aliases: "apikit 1, mule apikit"
 ---
 
 # APIkit
@@ -17,6 +19,6 @@ The router reads one spec and sends each request to the implementation flow of t
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks APIKIT-2 (apikit 1.0.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks APIKIT-2 (apikit 1.0.1)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.

@@ -1,6 +1,8 @@
 ---
 name: mule-sdk
 description: Rules for shared Mule 4 assets that other applications depend on - connectors built with the Mule SDK (Java SDK), shared Mule plugins (mule-plugin packaging) and DataWeave libraries published to Exchange or a Maven repository - covering the public contract of exported operations and functions, semantic versioning of the asset, and connection management in connectors. Use when writing, changing or reviewing such an asset; recognise it by a pom.xml with mule-extension, mule-plugin or dw-library packaging, or @Extension and @Operations classes. Do NOT use it for a Mule application (mule-app), the DataWeave code inside a library (dataweave), publishing or deploying the asset (the team's delivery process), or a plain Java library with no Mule packaging. It supersedes the `mule-sdk` skill of brunosouzas/agent-skills when both are installed, keeping its rule IDs.
+metadata:
+  aliases: "mule extension, mule connector, mule-plugin, dw-library"
 ---
 
 # Mule SDK and shared assets
@@ -17,6 +19,6 @@ What is particular to Mule 4 assets that applications depend on: connectors (Mul
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks ASSET-1 (mule-sdk 1.0.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks ASSET-1 (mule-sdk 1.0.1)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add.

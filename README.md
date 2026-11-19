@@ -33,6 +33,21 @@ The skills load on their own when the work matches. You can also ask for them by
 
 Put the conventions in `engineering/profile.yaml` at the project root. See `profiles/SCHEMA.md` and the examples in `profiles/examples/`. A profile can extend your company's or your own rules packs, kept in private repositories, and override, disable or add rules by ID. Every rule has a decision class (`auto`: the agent applies it; `propose`: it recommends it, says what it costs, and applies it when the developer agrees or the task already asks for it or implies it; `ask`: it stops and asks), which a profile can change by ID; floor rules (synthetic test data, no secrets in code, a declared security scheme, no payload or personal data in logs) cannot be turned off. `plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py` shows the rules in effect. Without a profile, the skills follow the conventions already in the project, and say so.
 
+## Stack names
+
+A process that loads one skill per technology named on a repository's `Stack:` line (in its `AGENTS.md`) matches a name against each skill's `name` and its `metadata.aliases`, ignoring case:
+
+| Name on the `Stack:` line | Skill |
+| --- | --- |
+| MuleSoft, Mule, Mule 4, Anypoint, CloudHub | `mule-engineering:mule-app` |
+| APIkit | `mule-engineering:apikit` |
+| DataWeave, DataWeave 2, DWL | `mule-engineering:dataweave` |
+| MUnit, MUnit 3, MUnit Tools | `mule-engineering:munit` |
+| Mule SDK, Mule extension, Mule connector, mule-plugin, dw-library | `mule-engineering:mule-sdk` |
+| RAML, OpenAPI, OAS, Swagger, API spec | `api-contracts:api-contract` |
+
+The other skills are not technologies: `project-profile`, `api-first-implementation` and the pattern skills load from their descriptions, or because another skill invokes them.
+
 ## What was measured
 
 These plugins come out of a proof of concept with fixed cases, a baseline arm without the plugins, and real Mule builds. `docs/poc-results.md` has the numbers and their limits. In short:
