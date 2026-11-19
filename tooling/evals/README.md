@@ -24,7 +24,7 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 - `run-baseline.sh <case> <n> <work dir> <results dir>` and `run-plugin.sh <case> <n> <work dir> <results dir> <plugin dir>...`: one run. The fixture is copied to a temp directory outside the repository, then `claude -p` runs with `--setting-sources project --strict-mcp-config --permission-mode acceptEdits`, and `--output-format stream-json`.
   - **Baseline** adds `--disable-slash-commands` (no skills).
   - **Plugin** drops it, adds one `--plugin-dir` and one `--add-dir` per plugin (so the skills can read their references), and turns off the bundled Claude Code skills with `plugin-arm-settings.json`.
-  - Bash is not pre-approved in either arm, except `mvn` for TAPI.
+  - Bash is not pre-approved in either arm, except `mvn` for TAPI. That is a pre-approval, not a limit: Claude Code under `--permission-mode acceptEdits` may still allow other commands inside the run's folder (the TAPI calibration saw `find`, `cat`, `python3`, `sed`, `cp` and `rm`). Both arms get the same rules.
 - `run-suite.sh <baseline|plugin> <out dir> <case>...`: 3 runs per case and model.
 - `run-build.sh <scratch dir> <runs dir> <out dir>` (`CASE=T1b` or `T5`): builds each project a run left, with `mvn clean test`, exactly as it is.
 - **Checks on every run:**
