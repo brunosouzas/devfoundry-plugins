@@ -1,6 +1,6 @@
 {
   "name": "integration-patterns",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "Decides whether an integration flow needs an Enterprise Integration Pattern (Hohpe and Woolf), applies it only when its problem is present, and says why when it is not. Catalog: Idempotent Receiver, with a platform-neutral reference and a verified Mule 4 realization.",
   "author": {
     "name": "Bruno Souza",

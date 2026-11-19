@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 1.0.0, 2026-11-19
+
+The first stable release. Every plugin is 1.0.0. From here on, versions follow the rules in each `rules.md`: a new rule is a MINOR version, a rule that now says the opposite is a MAJOR one, clearer wording a PATCH, and marking a rule `(floor)` or removing the mark is MAJOR.
+
+What 1.0.0 holds:
+- `engineering-profile`: the project profile with rules packs, floor rules and decision classes (`auto`, `propose`, `ask`), resolved by `resolve-profile.py`.
+- `api-first`: requirements to tests, with reuse first and a "Decisions for you" section.
+- `api-contracts`: contract first, REST rules, API-led layers and the limits a contract states.
+- `mule-engineering`: `mule-app`, `dataweave`, `apikit`, `munit` and `mule-sdk`, with verified examples.
+- `integration-patterns`: Idempotent Receiver.
+- `resilience-patterns`: Circuit Breaker, session renewal, a bounded fan-out with a time budget, and retry of transient failures.
+- CI with no credentials, and the full-API benchmark `TAPI` (a calibration with one run per arm on Opus scored 15/15 with the plugins against 13/15 without them).
+
+The entries below were written as the work went in.
+
 ### Added
 - `mule-engineering` 0.5.0, skill `mule-sdk`: connectors, shared Mule plugins and DataWeave libraries as assets with a public contract (ASSET-1, ASSET-2, both `auto`), ported from the `mule-sdk` skill of brunosouzas/agent-skills with the same IDs. `docs/backlog/eip-from-agent-skills.md` keeps the EIP rules of that repository's `mulesoft` skill (Dead Letter Channel, Correlation Identifier, Publish-Subscribe, EIP-1 to EIP-8) as the source for patterns `integration-patterns` does not have yet. With this, every rule of agent-skills' `mulesoft` and `api` plugins is ported, covered by another rule, or moved to the maintainer's private layer.
 - The full-API benchmark, case `TAPI` in `tooling/evals/cases/`: a whole System API (`GET /jobs`, `GET /jobs/{jobRef}`) from synthetic requirements over a fictional SOAP backend with a login session, an encoded query and N+1 reads, starting from a synthetic company template that builds and passes its tests. A 15-item rubric (`grading.md`), a script grader for the checkable items (`grade.py`), a blind review brief, and both runners accept the case with `mvn` pre-approved. It replaces the private full-API case used during development.
