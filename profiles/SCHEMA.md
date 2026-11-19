@@ -39,6 +39,8 @@ mulesoft:
     implFile: <pattern>         # file that holds the flow
     globalConfigFile: <path>    # file that holds every global element (listener, request and other configs)
     variable: <case or pattern> # flow variable names: camelCase, snake_case, or a pattern such as v_{snake_case}
+    dwlFile: <pattern>          # file of each DataWeave script or module; placeholders {resource} {name}
+    # any other key: a pattern its comment explains; a comment may give the value for code shared by several resources
   precedence:
     newCode: profile            # new code follows naming, even next to legacy code; missing files are created
     legacyCode: keep            # existing code is not renamed, moved or reformatted
@@ -48,6 +50,8 @@ mulesoft:
 
 - `{resource}`: plural resource name from the endpoint path (`/products/{id}` → `products`); upper-case form `{RESOURCE}`.
 - `{operation}`: `list` (GET collection), `get` (GET by id), `create` (POST), `update` (PUT/PATCH), `delete` (DELETE); upper-case form `{OPERATION}`.
+- `{name}`: the script's or module's own name, a valid DataWeave identifier (`CustomerMapping`).
+- Code shared by several resources (a backend client, a shared module) still follows the pattern: the key's comment may give its value; otherwise it takes the first endpoint that uses it (`project-profile`, step 3).
 - `precedence` values: `newCode: profile`, `legacyCode: keep`, `divergence: report`. Other values are not defined yet.
 - Every section is optional. A profile with only `mulesoft.naming` is valid.
 

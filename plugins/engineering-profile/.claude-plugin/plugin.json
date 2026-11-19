@@ -1,6 +1,6 @@
 {
   "name": "engineering-profile",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Applies the project's engineering/profile.yaml and the company or personal rules packs it extends (naming, precedence over legacy code, rules overridden, disabled or added by ID, floor rules that cannot be turned off) to new Mule 4 code, and makes each flow's integration decisions explicit before any XML is written.",
   "author": {
     "name": "Bruno Souza",

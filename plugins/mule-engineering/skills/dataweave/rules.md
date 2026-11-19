@@ -12,9 +12,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
 
 ## Scripts (DW)
 
-- **DW-1** Move transformations longer than a few lines into `.dwl` files under `src/main/resources/dwl/`, in one folder per domain (`dwl/customer/`, `dwl/error/`, `dwl/common/`), and reuse functions through modules. A module's file name is a valid identifier, because it is imported by its path (`import * from dwl::customer::CustomerMapping`).
+- **DW-1** Move transformations longer than a few lines into `.dwl` files and reuse functions through modules. When the project profile has a `dwlFile` key (`mulesoft.naming`, `project-profile`), the file goes where it says, shared modules too; otherwise (no profile, or a profile without the key), under `src/main/resources/dwl/`, in one folder per domain (`dwl/customer/`, `dwl/error/`, `dwl/common/`). A module's file name is a valid identifier, because it is imported by its path (`import * from dwl::customer::CustomerMapping`).
   Why: inline scripts cannot be tested or reused, and one flat folder of dozens of scripts hides what belongs together.
-  Check: new long transforms reference a `.dwl` resource in a domain folder.
+  Check: new long transforms reference a `.dwl` resource in the folder the profile's `dwlFile` names, or in a domain folder when there is no such key.
   Class: auto
 
 - **DW-2** Declare the output MIME type and handle null and missing fields explicitly (`default`, `?`).
