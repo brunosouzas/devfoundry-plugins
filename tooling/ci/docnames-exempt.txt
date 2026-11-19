@@ -1,0 +1,4 @@
+# Examples that predate the mule-app rules (FLOW-2, FLOW-4) and keep their own layout and names. check-docnames is not
+# run on them. Any other example must pass it. One path per line, relative to plugins/.
+integration-patterns/skills/integration-patterns/assets/mule4/idempotent-receiver
+resilience-patterns/skills/resilience-patterns/assets/mule4/circuit-breaker

@@ -6,6 +6,7 @@ Claude Code plugins for MuleSoft and API engineering. This file is for agents wo
 
 - `plugins/<plugin>/`: one plugin each, in the Claude Code layout (`.claude-plugin/plugin.json`, `skills/<skill>/SKILL.md`, and `references/`, `assets/`, `scripts/` next to the skill). `.claude-plugin/marketplace.json` lists them.
 - `profiles/`: the `engineering/profile.yaml` schema (`SCHEMA.md`) and example profiles.
+- `tooling/ci/`: the scripts CI runs (`.github/workflows/ci.yml`), runnable locally.
 - `tooling/evals/`: the fixed eval cases (`cases/<id>/`: prompt, fixture, rubric, graders) and their runners. See `tooling/evals/README.md`.
 - `docs/`: architecture, decisions, and the results of the proof of concept these plugins came from.
 
@@ -35,3 +36,4 @@ Claude Code plugins for MuleSoft and API engineering. This file is for agents wo
 - Every change goes through a branch and a pull request into `main`, squash-merged.
 - Agents write on GitHub as `brunosouzas-agent`; the maintainer (`brunosouzas`) approves and merges.
 - The agent's token has no `workflow` scope, so changes under `.github/workflows/` are pushed by the maintainer.
+- **CI** (`.github/workflows/ci.yml`) runs on every pull request and on `main` what needs no credentials: `claude plugin validate`, the scripts' unit tests, `tooling/ci/check-docnames-examples.sh` (every example except those in `tooling/ci/docnames-exempt.txt`, which predate the mule-app rules) and `tooling/ci/package-examples.sh` (every example compiled and packaged with MuleSoft's public repositories). The examples' MUnit tests need MuleSoft's EE repository: run `scripts/verify-examples.sh` locally whenever an example changes, as the table above says.
