@@ -1,6 +1,6 @@
 ---
 name: api-first-implementation
-description: The API-first way to implement an API change from its requirements - inventory every requirement, contract before code, code and tests traced to each requirement, and a final check that no requirement was silently left out. Use when asked to implement, build or change endpoints or integration flows "following the requirements", a spec, a story or a design (requirement documents in the project, an OpenSpec change, a design.md), in Mule 4 or any spec-driven API. Load it first when the work starts from requirements: it invokes project-profile and api-contract itself. Do NOT use it for a one-line fix with no requirement behind it, for only checking or writing the spec (api-contract), for only applying names or the profile (project-profile), for writing the requirements or the design themselves (that is the team's own process), or for reviewing someone else's change.
+description: The API-first way to implement an API change from its requirements - reuse what exists, inventory every requirement, contract before code, code and tests traced to each requirement, and a final check that no requirement was silently left out. Use when asked to implement, build or change endpoints or integration flows "following the requirements", a spec, a story or a design (requirement documents in the project, an OpenSpec change, a design.md), in Mule 4 or any spec-driven API. Load it first when the work starts from requirements: it invokes project-profile and api-contract itself. Do NOT use it for a one-line fix with no requirement behind it, for only checking or writing the spec (api-contract), for only applying names or the profile (project-profile), for writing the requirements or the design themselves (that is the team's own process), or for reviewing someone else's change.
 ---
 
 # API-first implementation
@@ -9,6 +9,12 @@ API-first is a public practice (MuleSoft's API-first guidance among others): the
 
 ## Steps
 
+0. **Reuse first (AFI-4 to AFI-6).** Before creating an API, a spec or a resource, look for what already exists, and say what you searched:
+   - the specs in the project (in Mule, `src/main/resources/api/` and the spec `apikit:config` loads; on another stack, the project's spec folder);
+   - the Exchange asset the project names: a spec dependency in `pom.xml`, an `apikit:config` that reads `resource::...`, or an asset the requirements name. Read what the project has of it; you cannot browse Exchange from here, so an asset nobody names is not searched for;
+   - an existing System API that already reaches the same backend, named in the requirements, the project's documents or its configuration.
+
+   Report each item found and the decision: reused, extended (only what the project itself holds), or not used, and why. When nothing exists, say "nothing found" and what was searched. Whether to call an existing System API or reach the backend directly, when the requirements do not say, is a recommendation with its costs (AFI-6, `propose`). Publishing to Exchange, creating an asset or a new version of one, or changing an API another project owns is the developer's decision: ask, and list it as a follow-up until then (AFI-5, `ask`).
 1. **Inventory the requirements (AFI-1).** Before any code, read every source the request points to, whole, including tables, notes and examples. When the request names none, look in this order and read all that apply: the spec-driven change the request names, or the only open one (`openspec/changes/<name>/`: `proposal.md`, the `specs/` scenarios, its `design.md`, and only the implementation items of `tasks.md`; process tasks such as a review, a pull request or a ticket are not requirements); a `design.md` or ADR; then requirement documents (`docs/`, `requirements/`). When a change summarises documents, read the documents too: a one-line rule is easy to drop in a summary. Number every requirement `R1`, `R2`… in your answer, one line each, with its source (file and section). Count as requirements:
    - every operation, parameter, filter, exclusion, mapping and transformation rule, default and edge case;
    - every error the requirements name, and how the caller sees it;
@@ -30,6 +36,6 @@ API-first is a public practice (MuleSoft's API-first guidance among others): the
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version, for example "breaks AFI-3 (api-first-implementation 0.1.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks AFI-3 (api-first-implementation 0.2.0)".
 
-If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text of an overridden rule, and follow the rules the packs add.
+If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add.

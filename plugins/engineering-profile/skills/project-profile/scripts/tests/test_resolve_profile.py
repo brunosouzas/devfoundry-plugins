@@ -9,8 +9,13 @@ rp = importlib.util.module_from_spec(spec); spec.loader.exec_module(rp)
 PUBLIC = """\
 # rules
 - **CON-2** Errors use one shared error type.
+  Check: one type.
+  Class: auto
 - **MUNIT-3** Keep the coverage gate.
+- **CON-4** A breaking change is a new major version.
+  Class: ask
 - **FLOOR-2** (floor) No secret in code.
+  Class: auto
 """
 
 
@@ -180,6 +185,75 @@ class Resolve(unittest.TestCase):
         self.assertTrue(rules["APISEC-1"]["floor"] and rules["FLOOR-2"]["floor"])
         self.assertFalse(rules["CON-2"]["floor"])
 
+
+    def test_classes_are_read_and_default_to_auto(self):
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\n")
+        rules = self.run_()["rules"]
+        self.assertEqual((rules["CON-2"]["class"], rules["CON-4"]["class"], rules["MUNIT-3"]["class"]), ("auto", "ask", "auto"))
+
+    def test_override_class_only_keeps_text_and_is_reported(self):
+        self.pack("acme", "rules:\n  override: {CON-2: {class: propose}}\n")
+        self.write("engineering/profile.yaml", """\
+            apiVersion: devfoundry/v1
+            kind: EngineeringProfile
+            extends: [engineering/packs/acme]
+            rules:
+              override: {CON-4: {class: auto, text: "Breaking changes go to v2"}}
+              add: [{id: ACME-LOG-1, text: t, why: w, check: c, class: ask}]
+            """)
+        res = self.run_()
+        self.assertEqual(res["errors"], [])
+        self.assertEqual(res["rules"]["CON-2"]["text"], "Errors use one shared error type.")
+        self.assertEqual((res["rules"]["CON-2"]["class"], res["rules"]["CON-4"]["class"]), ("propose", "auto"))
+        self.assertEqual(res["rules"]["ACME-LOG-1"]["class"], "ask")
+        report = rp.report(res)
+        self.assertIn("CON-2 override by pack acme@1.0.0 (was public), class auto -> propose", report)
+        self.assertIn("Rules of class ask: ACME-LOG-1", report)
+        self.assertIn("Rules of class propose: CON-2", report)
+
+    def test_bad_class_is_an_error_and_floor_class_is_refused(self):
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n"
+                   "  override: {CON-2: {class: maybe}, FLOOR-2: {class: ask}, MUNIT-3: {why: x}}\n"
+                   "  add: [{id: ACME-1, text: t, why: w, check: c, class: later}]\n")
+        res = self.run_()
+        errs = " | ".join(res["errors"])
+        for needle in ("override CON-2: class must be one of auto, propose, ask", "add ACME-1: class must be one of",
+                       "override MUNIT-3 needs the rule's text or class"):
+            self.assertIn(needle, errs)
+        self.assertEqual(res["refused"], [{"id": "FLOOR-2", "action": "override", "layer": "project"}])
+        self.assertEqual(res["rules"]["FLOOR-2"]["class"], "auto")
+
+    def test_every_real_public_rule_declares_one_class(self):
+        errors = []
+        rules = rp.public_rules(rp.default_rules_roots(), errors)
+        self.assertEqual(errors, [])
+        self.assertEqual([rid for rid, r in rules.items() if not r["class_declared"]], [])
+        self.assertEqual((rules["CON-5"]["class"], rules["AFI-5"]["class"], rules["AFI-6"]["class"]), ("ask", "ask", "propose"))
+
+    def test_class_line_is_scoped_to_its_rule_and_checked(self):
+        (self.tmp / "rules/x").mkdir()
+        (self.tmp / "rules/x/rules.md").write_text(
+            "- **ZZ-1** No class here.\n  Why: w\n\n## Notes\n\n- a note\n  Class: ask\n"
+            "- **ZZ-2** Wrong case.\n  Class: Ask\n- **ZZ-3** Twice.\n  Class: ask\n  Class: auto\n")
+        errors = []
+        rules = rp.public_rules([self.tmp / "rules"], errors)
+        self.assertEqual((rules["ZZ-1"]["class"], rules["ZZ-1"]["class_declared"]), ("auto", False))
+        self.assertEqual(rules["ZZ-3"]["class"], "ask")
+        joined = " | ".join(errors)
+        self.assertIn("ZZ-2: Class must be one of auto, propose, ask, got 'Ask'", joined)
+        self.assertIn("ZZ-3: more than one Class line", joined)
+
+    def test_override_noop_null_class_and_reenable(self):
+        self.pack("a", "rules:\n  disable: {CON-2: 'old'}\n")
+        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/a]\nrules:\n"
+                   "  override: {CON-2: {class: propose}, CON-4: {class: ask}}\n"
+                   "  add: [{id: ACME-1, text: t, why: w, check: c, class: null}]\n")
+        res = self.run_()
+        self.assertEqual(res["errors"], [])
+        ids = [(c["id"], c["action"]) for c in res["changes"]]
+        self.assertNotIn(("CON-4", "override"), ids)  # same class, same text: not a change
+        self.assertEqual(res["rules"]["ACME-1"]["class"], "auto")
+        self.assertIn("CON-2 override by project (was pack a@1.0.0), class auto -> propose, enabled again", rp.report(res))
 
 if __name__ == "__main__":
     unittest.main()

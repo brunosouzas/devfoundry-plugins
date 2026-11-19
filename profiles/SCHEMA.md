@@ -24,7 +24,7 @@ extends:                        # packs, lowest precedence first; each entry is 
   - engineering/packs/<company pack>
 rules:                          # project-level changes to rules, by ID
   override:
-    <RULE-ID>: { text: "<the rule as it applies here>", why: "<reason>" }
+    <RULE-ID>: { text: "<the rule as it applies here>", class: <auto | propose | ask>, why: "<reason>" }   # text, class or both
   disable:
     <RULE-ID>: "<reason>"       # the reason is required
   add:
@@ -32,6 +32,7 @@ rules:                          # project-level changes to rules, by ID
       text: "<the rule>"
       why: "<why it exists>"
       check: "<how to check it>"
+      class: <auto | propose | ask>   # optional; auto when missing
 mulesoft:
   naming:
     flow: <pattern>             # name of each flow; placeholders {resource} {RESOURCE} {operation} {OPERATION}
@@ -66,7 +67,11 @@ A pack has no `extends`: the project lists every pack it uses, in order.
 
 ## How layers merge
 
-In short: settings merge key by key, rules change by ID (`override`, `disable` with a reason, `add` with a prefix of your own), one change per rule per layer, and floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`, `MLOG-2`) cannot be disabled or overridden. The full rules, the errors and what the agent does with each are in `plugins/engineering-profile/skills/project-profile/references/layers.md`, which ships with the plugin.
+In short: settings merge key by key, rules change by ID (`override` of the text, the class or both, `disable` with a reason, `add` with a prefix of your own), one change per rule per layer, and floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`, `MLOG-2`) cannot be disabled or overridden, in their text or their class. The full rules, the errors and what the agent does with each are in `plugins/engineering-profile/skills/project-profile/references/layers.md`, which ships with the plugin.
+
+## Decision classes
+
+Every rule has a class: `auto` (the agent applies it), `propose` (it recommends it, says what it costs, and applies it only when the developer agrees or the task already asks for it or implies it) or `ask` (it stops and asks). A public rule's class is the `Class:` line under it in its `rules.md`. A pack or the project changes it by rule ID with `override: {<RULE-ID>: {class: ask}}`; floor rules keep theirs. The table of classes with examples is in `layers.md`.
 
 ## Schema v0
 
