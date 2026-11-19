@@ -46,6 +46,13 @@ jobs:
           (cd plugins/engineering-profile/skills/project-profile/scripts && "$RUNNER_TEMP/venv/bin/python" -m unittest discover -s tests)
           (cd plugins/mule-engineering/skills/mule-app/scripts && "$RUNNER_TEMP/venv/bin/python" -m unittest discover -s tests)
 
+      - name: Skill frontmatter is strict YAML
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          test -x "$RUNNER_TEMP/venv/bin/python" || { python3 -m venv "$RUNNER_TEMP/venv"; "$RUNNER_TEMP/venv/bin/pip" install --quiet "pyyaml==${PYYAML_VERSION}"; }
+          "$RUNNER_TEMP/venv/bin/python" tooling/ci/check-skill-frontmatter.py
+
       - name: Display names and flow descriptions of the examples
         if: ${{ !cancelled() }}
         run: bash tooling/ci/check-docnames-examples.sh
