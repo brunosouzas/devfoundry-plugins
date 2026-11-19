@@ -1,10 +1,10 @@
 {
   "name": "mule-engineering",
-  "version": "0.4.1",
-  "description": "Mule 4 engineering rules with verified examples: flows, layout, properties, the global error handler (a backend timeout is 504, never 408), structured logs and the build (mule-app); DataWeave modules and their tests (dataweave); the APIkit router and the spec it loads (apikit); MUnit tests that call each endpoint through the HTTP listener (munit).",
+  "version": "0.5.0",
+  "description": "Mule 4 engineering rules with verified examples: flows, layout, properties, the global error handler (a backend timeout is 504, never 408), structured logs and the build (mule-app); DataWeave modules and their tests (dataweave); the APIkit router and the spec it loads (apikit); MUnit tests that call each endpoint through the HTTP listener (munit); connectors, shared plugins and DataWeave libraries as versioned assets (mule-sdk).",
   "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
   "homepage": "https://github.com/brunosouzas/devfoundry-plugins",
   "repository": "https://github.com/brunosouzas/devfoundry-plugins",
   "license": "MIT",
-  "keywords": ["mulesoft", "mule4", "apikit", "munit", "dataweave", "error-handling", "testing"]
+  "keywords": ["mulesoft", "mule4", "apikit", "munit", "dataweave", "error-handling", "testing", "mule-sdk"]
 }
