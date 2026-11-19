@@ -1,0 +1,77 @@
+name: CI
+
+# The checks that need no credentials: the plugin manifests, the scripts' unit tests, the display-name check on the
+# examples, and every verified example compiled and packaged with MuleSoft's public repositories. The examples' MUnit
+# tests need MuleSoft's EE repository and run locally (scripts/verify-examples.sh of each skill).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CLAUDE_CODE_VERSION: 2.1.308
+      PYYAML_VERSION: 6.0.2
+      DISABLE_AUTOUPDATER: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Plugin manifests
+        run: |
+          set -uo pipefail
+          npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+          rc=0
+          claude plugin validate . || rc=1
+          for p in plugins/*/; do claude plugin validate "$p" || rc=1; done
+          exit "$rc"
+
+      - name: Script unit tests
+        if: ${{ !cancelled() }}
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet "pyyaml==${PYYAML_VERSION}"
+          (cd plugins/engineering-profile/skills/project-profile/scripts && "$RUNNER_TEMP/venv/bin/python" -m unittest discover -s tests)
+          (cd plugins/mule-engineering/skills/mule-app/scripts && "$RUNNER_TEMP/venv/bin/python" -m unittest discover -s tests)
+
+      - name: Display names and flow descriptions of the examples
+        if: ${{ !cancelled() }}
+        run: bash tooling/ci/check-docnames-examples.sh
+
+  examples:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      MAVEN_VERSION: 3.9.15
+      # Maven 3.10 breaks the Mule Maven plugins (mule-app BUILD-1): pin 3.9.x and check the download.
+      MAVEN_SHA512: 33d81e0ec785f0207e3e5e3ffb61863e1dca5784c15ac3fb5ff105f69cffbea484eb8d473ea60467a63f7b0570eef8622f2fed8eee96acbe668aa313391cddb3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Maven
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSLo maven.tar.gz --retry 3 \
+            "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+          echo "${MAVEN_SHA512}  maven.tar.gz" | sha512sum -c -
+          tar -xzf maven.tar.gz
+          echo "MVN=$RUNNER_TEMP/apache-maven-${MAVEN_VERSION}/bin/mvn" >> "$GITHUB_ENV"
+          echo "JAVA_HOME=$JAVA_HOME_17_X64" >> "$GITHUB_ENV"
+
+      - name: Compile and package every example
+        run: bash tooling/ci/package-examples.sh "$RUNNER_TEMP/m2"
