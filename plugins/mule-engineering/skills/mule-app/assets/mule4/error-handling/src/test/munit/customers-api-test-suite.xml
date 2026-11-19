@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <!-- The HTTP tests send a real request to the listener, so the global error handler and the listener's error
+       response are part of what is tested (MUNIT-5). http.port is a free port (dynamicPorts in pom.xml). -->
+  <munit:config name="customers-api-test-suite.xml"/>
+
+  <http:request-config name="test-client-config">
+    <http:request-connection host="localhost" port="${http.port}"/>
+  </http:request-config>
+
+  <munit:test name="get-customer-gives-200-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="customers-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get customer from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:payload value="#[MunitTools::getResourceAsString('backend-customer.json')]" mediaType="application/json"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/customers/C-1001">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+      <munit-tools:assert-that expression="#[payload.customerId]" is='#[MunitTools::equalTo("C-1001")]'/>
+      <munit-tools:assert-that expression="#[payload.status]" is='#[MunitTools::equalTo("ACTIVE")]'/>
+      <munit-tools:assert-that expression="#[payload.since]" is='#[MunitTools::equalTo("2024-01-05")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="unknown-customer-gives-404-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="customers-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get customer from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:NOT_FOUND"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/customers/C-1001">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(404)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("CUSTOMER_NOT_FOUND")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="backend-timeout-gives-504-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="customers-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get customer from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:TIMEOUT"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/customers/C-1001">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(504)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("UPSTREAM_TIMEOUT")]'/>
+      <munit-tools:assert-that expression="#[payload.message]" is='#[MunitTools::equalTo("A system behind this API did not answer in time")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="backend-unreachable-gives-503-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="customers-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get customer from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:CONNECTIVITY"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/customers/C-1001">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(503)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("UPSTREAM_UNAVAILABLE")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="unexpected-error-gives-500-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="customers-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes>
+          <munit-tools:with-attribute attributeName="doc:name" whereValue="Get customer from backend"/>
+        </munit-tools:with-attributes>
+        <munit-tools:then-return>
+          <munit-tools:error typeId="HTTP:INTERNAL_SERVER_ERROR"/>
+        </munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/customers/C-1001">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(500)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("INTERNAL_ERROR")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The module's functions on their own, with their edge cases (DWTEST-1). -->
+  <munit:test name="mapping-missing-name-gives-empty-name-test">
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { id: "C-1002", statusCode: "S", createdAt: "20231231" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <ee:transform>
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+import * from dwl::customer::CustomerMapping
+output application/json
+---
+toCustomer(payload)]]></ee:set-payload></ee:message>
+      </ee:transform>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[payload.name]" is='#[MunitTools::equalTo("")]'/>
+      <munit-tools:assert-that expression="#[payload.status]" is='#[MunitTools::equalTo("SUSPENDED")]'/>
+      <munit-tools:assert-that expression="#[payload.since]" is='#[MunitTools::equalTo("2023-12-31")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="mapping-unknown-status-fails-test" expectedErrorType="MULE:EXPRESSION">
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { id: "C-1003", statusCode: "X", createdAt: "20240105" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <ee:transform>
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+import * from dwl::customer::CustomerMapping
+output application/json
+---
+toCustomer(payload)]]></ee:set-payload></ee:message>
+      </ee:transform>
+    </munit:execution>
+  </munit:test>
+
+</mule>

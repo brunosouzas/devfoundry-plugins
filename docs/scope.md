@@ -35,7 +35,7 @@ The public layer never holds personal or company material, and never client data
 | --- | --- | --- | --- |
 | API-first implementation | `api-first` | `api-first-implementation`: requirements inventory, contract first, tests traced to requirements, final check (AFI-1 to AFI-3) | measured on the full-API case |
 | API contract (spec) | `api-contracts` | contract first, RES, CON, APISEC | spec validation with real tooling |
-| Mule code | `mule-engineering` | `apikit` | flows, layout, error handling, logging, properties, build, DataWeave (ported from the maintainer's `mulesoft` and `dataweave` skills) |
+| Mule code | `mule-engineering` | `mule-app` (flows, layout, properties, errors, logs, build), `dataweave`, `apikit` | deploy and platform configuration stays out (delivery); naming conventions stay in profiles and private packs |
 | Unit tests | `mule-engineering` | `munit` (endpoints through HTTP, mocks, error paths) | small gaps only |
 | API design (architecture) | to be decided | none | API-led layers (system, process, experience), resource modelling, non-functional requirements, API design review rules |
 | Integration patterns | `integration-patterns` | Idempotent Receiver | Content-Based Router, Scatter-Gather, Aggregator, Dead Letter Channel |
@@ -59,7 +59,7 @@ The public layer never holds personal or company material, and never client data
 
    Without this, every new rule ends up in the public layer for lack of another place.
 2. **API-first implementation.** The ordered flow and the final requirements check (`api-first`).
-3. **The rest of `mule-engineering`.** Port the remaining Mule and DataWeave rules, with verified examples. A Niche timeout that reaches the caller as 408 is one of the gaps this closes.
+3. **The rest of `mule-engineering`.** Port the remaining Mule and DataWeave rules, with verified examples. A backend timeout that reaches the caller as 408 is one of the gaps this closes.
 4. **API design**, including the API-led layers.
 
 After steps 1 and 2: measure again with the full-API case (1 run per arm), so the public layer is shown to work before private layers are put on top.

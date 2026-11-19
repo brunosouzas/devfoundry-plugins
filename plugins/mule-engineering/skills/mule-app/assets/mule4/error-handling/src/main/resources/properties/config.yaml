@@ -1,0 +1,4 @@
+# Common to every environment (CFG-3).
+customers:
+  backend:
+    responseTimeoutMillis: "3000"

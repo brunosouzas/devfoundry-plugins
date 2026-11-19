@@ -1,0 +1,8 @@
+# The local environment: the default of the env property, and the one MUnit runs with.
+http:
+  port: "8081"
+customers:
+  backend:
+    protocol: "HTTP"
+    host: "localhost"
+    port: "9091"

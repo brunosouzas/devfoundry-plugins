@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The global error handler: each error type gets the status and body the API defines (MERR-2). The body never
+     carries error.description, which holds the backend's own message. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <error-handler name="common-error-handler" doc:name="Common error handler">
+    <on-error-propagate type="CUSTOMERS:NOT_FOUND" doc:name="On customer not found">
+      <set-variable variableName="httpStatus" value="404" doc:name="Set status 404"/>
+      <ee:transform doc:name="Build not found error">
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "CUSTOMER_NOT_FOUND", message: "No customer with this id" }]]></ee:set-payload></ee:message>
+      </ee:transform>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <!-- A backend that does not answer in time is 504, not 408: the caller was not too slow (MERR-3). -->
+    <on-error-propagate type="HTTP:TIMEOUT" doc:name="On backend timeout">
+      <set-variable variableName="httpStatus" value="504" doc:name="Set status 504"/>
+      <ee:transform doc:name="Build timeout error">
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "UPSTREAM_TIMEOUT", message: "A system behind this API did not answer in time" }]]></ee:set-payload></ee:message>
+      </ee:transform>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <on-error-propagate type="HTTP:CONNECTIVITY" doc:name="On backend unreachable">
+      <set-variable variableName="httpStatus" value="503" doc:name="Set status 503"/>
+      <ee:transform doc:name="Build unavailable error">
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "UPSTREAM_UNAVAILABLE", message: "A system behind this API cannot be reached" }]]></ee:set-payload></ee:message>
+      </ee:transform>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+
+    <on-error-propagate type="ANY" doc:name="On any other error">
+      <set-variable variableName="httpStatus" value="500" doc:name="Set status 500"/>
+      <ee:transform doc:name="Build internal error">
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ code: "INTERNAL_ERROR", message: "Unexpected error" }]]></ee:set-payload></ee:message>
+      </ee:transform>
+      <flow-ref name="log-request-failed" doc:name="Log the failure"/>
+    </on-error-propagate>
+  </error-handler>
+
+  <!-- Structured entries with the correlation id (MLOG-1), and the error type, never the payload (MLOG-2). -->
+  <sub-flow name="log-request-failed" doc:description="Logs a failed request with its correlation id and error type; called by every case of the global error handler.">
+    <logger level="ERROR" doc:name="Log request failed" message='#[output application/json indent=false --- { event: "request.failed", correlationId: correlationId, errorType: (error.errorType.namespace default "") ++ ":" ++ (error.errorType.identifier default ""), status: vars.httpStatus }]'/>
+  </sub-flow>
+</mule>

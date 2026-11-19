@@ -4,7 +4,7 @@ Project: `${CLAUDE_SKILL_DIR}/assets/mule4/local-spec-router/` (Mule 4.9.5, APIk
 
 ## What the example leaves out on purpose
 
-It shows routing and testing, nothing else. A real spec also follows the api-contract rules the example skips: a security scheme on each operation (APISEC-1), examples (CON-3), a major version in the base path (CON-4), a bound or paging on `GET /orders` (RES-3), and every error status on each operation (CON-2). A real listener flow also maps `APIKIT:NOT_ACCEPTABLE` 406, `APIKIT:UNSUPPORTED_MEDIA_TYPE` 415 and `APIKIT:NOT_IMPLEMENTED` 501, with a test for each mapped error (MUNIT-2). Copy the syntax, not the scope.
+It shows routing and testing, nothing else. A real spec also follows the api-contract rules the example skips: a security scheme on each operation (APISEC-1), examples (CON-3), a major version in the base path (CON-4), a bound or paging on `GET /orders` (RES-3), and every error status on each operation (CON-2). A real listener flow also maps `APIKIT:NOT_ACCEPTABLE` 406, `APIKIT:UNSUPPORTED_MEDIA_TYPE` 415 and `APIKIT:NOT_IMPLEMENTED` 501, with a test for each mapped error (MUNIT-2). The router's errors are mapped in the listener flow's own handler, the local handler `mule-app` MERR-1 allows for responses only that flow gives; the `mule-app` example shows the global handler that a real application adds for its other errors (a backend timeout as 504, MERR-3). Copy the syntax, not the scope.
 
 ## Files and why each piece is there
 
@@ -12,7 +12,7 @@ It shows routing and testing, nothing else. A real spec also follows the api-con
 | --- | --- |
 | `src/main/resources/api/orders-api.yaml` | The API's own OAS 3 spec in the project: parameters with enum and pattern, the shared `Error` type, one response per status the API returns. |
 | `src/main/resources/config.yaml` | `api.spec: "orders-api.yaml"`: the router reads the spec through a property, so moving to the Exchange dependency later changes one value (`resource::<groupId>:<assetId>:<version>:oas:zip:orders-api.yaml`, APIKIT-1). |
-| `src/main/mule/global.xml` | `apikit:config api="${api.spec}"`, the listener config, and the backend request config with a `responseTimeout` from properties. |
+| `src/main/mule/common/global-config.xml` | `apikit:config api="${api.spec}"`, the listener config, and the backend request config with a `responseTimeout` from properties. |
 | `src/main/mule/orders-api.xml` | The listener flow (router plus the APIKIT error responses), one thin implementation flow per operation (APIKIT-3), the private flows that call the backend, and an `error-mapping` from `HTTP:NOT_FOUND` to the app's `ORDERS:NOT_FOUND`. |
 | `src/test/munit/orders-api-test-suite.xml` | Every test sends an HTTP request to the listener (MUNIT-5): 200 for each operation, 400 for an invalid enum (the backend is never called), 404 when the backend has no such order. |
 | `pom.xml` | `dynamicPorts` in the `munit-maven-plugin` configuration: a free port for `http.port` during tests. |

@@ -38,7 +38,7 @@ How to change this file:
   Why: the type is what validation and the implementation are generated from.
   Check: no inline `object` or `any` bodies.
 
-- **CON-2** Errors use one shared error type and the status codes the requirements name (`400`, `401`, `403`, `404`, `409`, `500`, `502`, `503`…), each documented on the operation.
+- **CON-2** Errors use one shared error type and the status codes the requirements name (`400`, `401`, `403`, `404`, `409`, `500`, `502`, `503`, `504`…), each documented on the operation.
   Why: one error shape lets every consumer handle errors the same way.
   Check: each operation lists its error responses with the shared type.
 

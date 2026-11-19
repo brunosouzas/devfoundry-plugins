@@ -66,7 +66,7 @@ A pack has no `extends`: the project lists every pack it uses, in order.
 
 ## How layers merge
 
-In short: settings merge key by key, rules change by ID (`override`, `disable` with a reason, `add` with a prefix of your own), one change per rule per layer, and floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`) cannot be disabled or overridden. The full rules, the errors and what the agent does with each are in `plugins/engineering-profile/skills/project-profile/references/layers.md`, which ships with the plugin.
+In short: settings merge key by key, rules change by ID (`override`, `disable` with a reason, `add` with a prefix of your own), one change per rule per layer, and floor rules (`FLOOR-1`, `FLOOR-2`, `APISEC-1`, `MLOG-2`) cannot be disabled or overridden. The full rules, the errors and what the agent does with each are in `plugins/engineering-profile/skills/project-profile/references/layers.md`, which ships with the plugin.
 
 ## Schema v0
 
