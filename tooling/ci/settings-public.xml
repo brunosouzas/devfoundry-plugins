@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Maven settings for CI: MuleSoft's public repositories only, no credentials. Enough to compile and package every
+     verified example; not enough to run MUnit, whose runtime comes from MuleSoft's EE repository (credentials). -->
+<settings>
+  <profiles>
+    <profile>
+      <id>mulesoft-public</id>
+      <repositories>
+        <repository><id>mulesoft-releases</id><url>https://repository.mulesoft.org/releases/</url></repository>
+        <repository><id>mulesoft-public</id><url>https://repository.mulesoft.org/nexus/content/repositories/public</url></repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository><id>mulesoft-releases</id><url>https://repository.mulesoft.org/releases/</url></pluginRepository>
+        <pluginRepository><id>mulesoft-public</id><url>https://repository.mulesoft.org/nexus/content/repositories/public</url></pluginRepository>
+      </pluginRepositories>
+    </profile>
+  </profiles>
+  <activeProfiles><activeProfile>mulesoft-public</activeProfile></activeProfiles>
+</settings>

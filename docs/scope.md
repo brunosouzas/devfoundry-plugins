@@ -41,7 +41,7 @@ The public layer never holds personal or company material, and never client data
 | Integration patterns | `integration-patterns` | Idempotent Receiver | Content-Based Router, Scatter-Gather, Aggregator, Dead Letter Channel |
 | Resilience patterns | `resilience-patterns` | Circuit Breaker, session renewal, a bounded fan-out with a time budget, retry of transient failures | bulkheads beyond the fan-out's concurrency bound |
 | Layers and overrides | `engineering-profile` | schema v1: packs in `extends`, rules overridden, disabled or added by ID, floor rules (`references/layers.md`) | a personal preference layer above the project |
-| Measurement | `tooling/evals` | fixed cases T1b, T2, T3b, T5, T6 | the full-API case as a benchmark, CI for `verify-examples.sh` |
+| Measurement | `tooling/evals` | fixed cases T1b, T2, T3b, T5, T6 | the full-API case as a benchmark, MUnit of the examples in CI (it needs MuleSoft's EE repository; CI packages them) |
 
 ## Out of scope
 
