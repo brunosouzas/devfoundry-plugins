@@ -26,9 +26,9 @@ On an **existing API** that consumers already use, a new bound changes what they
 
 1. **A bound on N, checked before the first call.** More items than the request can read inside its budget is refused at once, with a defined error the caller can act on (`422`, "narrow the search"), or paged when the API's contract has paging. Never start a request that cannot finish.
 2. **Bounded concurrency.** Run the calls in parallel only up to a set number at once, so one request cannot take every connection to the dependency. Sequential is the bound of one: fine when N is small, and say why.
-3. **A time budget for the whole request,** below what the caller waits (a client timeout, a gateway timeout), set once at the start as a deadline. Before **every** call, retry attempt and login, check the deadline: once it has passed, start nothing more and answer `504` (a system behind the API was too slow), never `408`. Each call keeps its own timeout, below the budget, so the request ends at most one call timeout after its deadline.
+3. **A time budget for the whole request,** below what the caller waits (a client timeout, a gateway timeout), set once at the start as a deadline. Before **every** call, retry attempt and login, check the deadline: once it has passed, start nothing more and answer `504` (a system behind the API was too slow), never `408`. Each call keeps its own timeout, below the budget, so the request ends at most one call's worst case (its connection timeout plus its response timeout) after its deadline.
 
-Choose the values together and state them. Size `maxItems` on the dependency's usual latency (with `maxItems` items, `maxConcurrency` at once and a usual latency `l`, about `ceil(maxItems / maxConcurrency) x l`), so a normal request finishes well inside the budget. When the dependency is slow, the deadline is the guard, not `maxItems`. The budget plus one call timeout must fit what the caller waits.
+Choose the values together and state them. Size `maxItems` on the dependency's usual latency (with `maxItems` items, `maxConcurrency` at once and a usual latency `l`, about `ceil(maxItems / maxConcurrency) x l`), so a normal request finishes well inside the budget. When the dependency is slow, the deadline is the guard, not `maxItems`. The budget plus one call's worst case (connection timeout plus response timeout) must fit what the caller waits.
 
 ## One failure among many
 
@@ -36,7 +36,7 @@ A failed call inside a parallel fan-out usually surfaces as the framework's comp
 
 ## Limits
 
-- The deadline is checked before each call, not during one: a call that started just before the deadline can run for its full timeout after it.
+- The deadline is checked before each call, not during one: a call that started just before the deadline can run for its full timeout after it: its connection timeout plus its response timeout, since the response timeout does not bound the connect.
 - The bound on N refuses a request the caller may need. Say what the caller does instead (a narrower search, paging).
 
 ## The test

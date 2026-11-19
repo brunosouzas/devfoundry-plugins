@@ -26,7 +26,7 @@ All of these hold:
 - **Retry only the transient errors.** Classify each error first; a permanent one ends the attempts at once and becomes a defined error.
 - **After the last attempt,** return a defined error, never the dependency's own message: `504` when the last attempt timed out, `503` for any other transient failure (the same statuses as mule-app MERR-3 gives a call without retries).
 
-State the worst case: `(attempts) x timeout + (attempts - 1) x delay`. On a request path, check the request's deadline before every attempt (`bounded-fan-out.md`), so the retries stop when the budget is spent instead of running past it.
+State the worst case: `(attempts) x (connection timeout + response timeout) + (attempts - 1) x delay`. A response timeout alone does not bound the TCP connect: give the call a connection timeout too, or an unreachable host waits for the connector's default connection timeout (30 s for Mule's HTTP connector). The sum is approximate: a 1 s connection timeout failed after 2.2 s (measured), so leave a margin. On a request path, check the request's deadline before every attempt (`bounded-fan-out.md`), so the retries stop when the budget is spent instead of running past it.
 
 ## The test
 

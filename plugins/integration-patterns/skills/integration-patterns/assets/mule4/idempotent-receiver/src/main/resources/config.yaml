@@ -11,6 +11,8 @@ payments:
   port: "443"
   basePath: "/api/v1"
   responseTimeoutMillis: "30000"
+  # Bounds the TCP connect, which responseTimeout does not (the connector's default is 30 s). A worst case counts both.
+  connectionTimeoutMillis: "2000"
 dedup:
   # Must exceed the longest span in which a repeat can arrive (message TTL, redelivery, DLQ replays).
   # A repeat after this is charged again. Object Store v2 allows at most 30 days.

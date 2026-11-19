@@ -14,7 +14,7 @@ A complete, built and tested project is in `${CLAUDE_SKILL_DIR}/assets/mule4/fan
 
 | File | What it shows |
 | --- | --- |
-| `src/main/mule/common/global-config.xml` | The request config with `responseTimeout` from a property, and the session store: in memory, `entryTtl` below the dependency's session life, one entry |
+| `src/main/mule/common/global-config.xml` | The request config with `responseTimeout` and a connection timeout (`sockets:tcp-client-socket-properties connectionTimeout`) from properties, and the session store: in memory, `entryTtl` below the dependency's session life, one entry |
 | `src/main/mule/impl/carrier-client.xml` | **Session renewal** (`call-carrier-with-session`: on `CARRIER:SESSION_REJECTED`, reuse a newer cached session or drop the rejected one and log in, then repeat once); the cached session or a login (`get-carrier-session`); **retries** (`until-successful` around a `try` that checks the deadline, rethrows only transient errors and keeps a permanent one, then raises a defined error: a timeout after the last attempt is `504`, other transient failures `503`) |
 | `src/main/mule/impl/shipments-impl.xml` | **The bounded fan-out:** the deadline set once (or taken from an outer one), the bound on N checked before any detail call, `parallel-foreach` with `maxConcurrency`, each route's failure caught and mapped to one defined error |
 | `src/main/mule/common/common-error.xml` | `422` for too many results, `504` for the spent budget or a timeout, `503` for an unavailable carrier, `502` for a rejected session or a bad answer, each with a fixed body |

@@ -37,9 +37,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
   Check: every `fun` a module exports has typed parameters and a return type.
   Class: auto
 
-- **DW-7** Branch on the shape or value of data with `match` and patterns, and give every `match` an `else` that either maps the unexpected case or fails with a message naming it (`fail("Unknown status: $(s)")`).
+- **DW-7** Branch on the shape or value of data with `match` and patterns, and give every `match` an `else` that either maps the unexpected case or fails with a message naming it (`fail("Unknown status: $(s)")`). When the cases are literals of one type, check the type first (`case n is Number -> n match { case 1 -> ... }`), or convert the value to the type of the cases on purpose before the `match` when another type is valid input (`(row.code default "") as String` before `case "A"`): a literal case also matches a value of another type that coerces to it, so `"3" match { case 3 -> ... }` takes the `case 3` branch.
   Why: nested `if` chains hide a missing case, and a `match` with no `else` throws a generic error at runtime.
-  Check: each `match` has an `else` case.
+  Check: each `match` has an `else` case; a `match` on literal cases of input data checks the type first or converts it on purpose.
   Class: auto
 
 - **DW-8** Parse and format dates, times and numbers with an explicit `format` (and a time zone for date-times); never rely on the default format or the runtime's zone. Money is never built by string concatenation.
@@ -56,5 +56,5 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
 
 - **DWTEST-1** Each function of a module and each transform has a test with its edge cases: in a Mule application an MUnit test with the input in a file (`src/test/resources/`), in a DataWeave library the DataWeave testing framework run by its Maven plugin.
   Why: DataWeave fails on the shape of data, and a happy-path test does not exercise the shape.
-  Check: tests cover at least one missing field, one empty collection and one wrong type or unknown value for each changed function.
+  Check: tests cover at least one missing field, one empty collection and one wrong type or unknown value for each changed function; a function that matches literals is also tested with a literal as the wrong type (`"3"` where `3` is expected).
   Class: auto

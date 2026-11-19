@@ -2,3 +2,5 @@
 customers:
   backend:
     responseTimeoutMillis: "3000"
+    # Bounds the TCP connect, which responseTimeout does not (the connector's default is 30 s). A worst case counts both.
+    connectionTimeoutMillis: "1000"

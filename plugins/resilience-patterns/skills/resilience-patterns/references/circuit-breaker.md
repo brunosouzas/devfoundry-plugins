@@ -36,7 +36,7 @@ Do not add a breaker when any of these holds. Say which one in the answer.
 
 Count only what says "the dependency is unhealthy": a timeout, a connection failure, and the `5xx` statuses that mean "unavailable" (500, 502, 503, 504). A `4xx` means the dependency answered, so it is not counted, and a `4xx` on the trial call closes the circuit. A `429` is the dependency asking for less traffic: count it if the dependency uses it as an overload signal.
 
-Give the call an explicit response timeout, well below the client's default, set from the dependency's normal latency. Otherwise every request still holds a thread for the full default before the failure is even counted.
+Give the call an explicit response timeout, well below the client's default, set from the dependency's normal latency, and a connection timeout, which the response timeout does not cover. Otherwise every request still holds a thread for the full default (or, for a host that does not answer the connect, for the default connection timeout, 30 s in Mule's HTTP connector) before the failure is even counted.
 
 ## Where the state lives
 

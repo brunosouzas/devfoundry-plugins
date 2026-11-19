@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
       xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
       xmlns:os="http://www.mulesoft.org/schema/mule/os"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
         http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
         http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
 
@@ -17,7 +19,12 @@
   </anypoint-mq:config>
 
   <http:request-config name="payments-api-config" basePath="${payments.basePath}" responseTimeout="${payments.responseTimeoutMillis}">
-    <http:request-connection protocol="HTTPS" host="${payments.host}" port="${payments.port}"/>
+    <http:request-connection protocol="HTTPS" host="${payments.host}" port="${payments.port}">
+      <!-- responseTimeout does not bound the TCP connect: without this, an unreachable host waits for the connector's default connection timeout, 30 s. -->
+      <http:client-socket-properties>
+        <sockets:tcp-client-socket-properties connectionTimeout="${payments.connectionTimeoutMillis}"/>
+      </http:client-socket-properties>
+    </http:request-connection>
   </http:request-config>
 
   <!-- The dedup store: persistent (survives restarts), shared by every worker, with a finite TTL. -->

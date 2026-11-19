@@ -1,6 +1,6 @@
 # MUnit: rules
 
-Rules for MUnit tests of Mule 4 applications. MUNIT-1 to MUNIT-4 are ported from the `munit` skill of brunosouzas/agent-skills; MUNIT-5 and MUNIT-6 are new. In an existing project, follow the conventions it already uses and report a difference instead of renaming.
+Rules for MUnit tests of Mule 4 applications. MUNIT-1 to MUNIT-4 are ported from the `munit` skill of brunosouzas/agent-skills; MUNIT-5 to MUNIT-7 are new. In an existing project, follow the conventions it already uses and report a difference instead of renaming.
 
 How to change this file: add a rule with the next number; edit a rule in place and keep its ID; retire a rule by keeping its ID with `(retired in <version>: <reason>)`, never reusing the number.
 
@@ -36,4 +36,9 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
 - **MUNIT-6** Mocks of an outbound connector operation are matched by the call's `doc:name` or `config-ref`, not by the processor type alone.
   Why: a mock of `http:request` with no attribute also catches the test's own HTTP request to the listener, and the test asserts on the mock's answer instead of the app's.
   Check: each `mock-when` of `http:request` has a `with-attribute` on `doc:name` or `config-ref`.
+  Class: auto
+
+- **MUNIT-7** A test that must check anything after the flow fails (an `assert-that` on the error, a `verify-call` of a backend that must or must not have been called) catches the error itself: a `try` with an `on-error-continue` around the call in `munit:execution` that records the error type in a variable, then the checks in `munit:validation`, starting with an assert on that variable, so the test also fails when no error is raised. It never combines `expectedErrorType` with a `munit:validation`; `expectedErrorType` alone is for a test whose only claim is the error type.
+  Why: when the error that `expectedErrorType` names is raised, MUnit ends the test as passed and never runs its `munit:validation`, so every assert and verify there is skipped and the test passes whatever else the flow did, as long as it raised that error (verified on MUnit 3.4).
+  Check: no `munit:test` has both `expectedErrorType` and a `munit:validation`; each test that catches the error with `try` asserts the caught error type.
   Class: auto

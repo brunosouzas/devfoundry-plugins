@@ -2,12 +2,14 @@
 <!-- Global elements, defined once (FLOW-3). Every environment value comes from properties (CFG-1, CFG-3). -->
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
       xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
       xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
         http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
   <!-- The environment picks the second file; a -Denv=<name> at deploy overrides this default. -->
@@ -24,6 +26,11 @@
 
   <!-- The response timeout is a property, never the connector's default (MERR-3, CFG-1). -->
   <http:request-config name="customers-backend-config" doc:name="Customers backend request config" responseTimeout="${customers.backend.responseTimeoutMillis}">
-    <http:request-connection protocol="${customers.backend.protocol}" host="${customers.backend.host}" port="${customers.backend.port}"/>
+    <http:request-connection protocol="${customers.backend.protocol}" host="${customers.backend.host}" port="${customers.backend.port}">
+      <!-- responseTimeout does not bound the TCP connect: without this, an unreachable host waits for the connector's default connection timeout, 30 s. -->
+      <http:client-socket-properties>
+        <sockets:tcp-client-socket-properties connectionTimeout="${customers.backend.connectionTimeoutMillis}"/>
+      </http:client-socket-properties>
+    </http:request-connection>
   </http:request-config>
 </mule>

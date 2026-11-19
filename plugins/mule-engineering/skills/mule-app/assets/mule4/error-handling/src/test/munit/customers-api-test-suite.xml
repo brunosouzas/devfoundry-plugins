@@ -184,4 +184,20 @@ toCustomer(payload)]]></ee:set-payload></ee:message>
     </munit:execution>
   </munit:test>
 
+  <!-- A status sent as a number is converted on purpose and is not a known code (DW-7, DWTEST-1). -->
+  <munit:test name="mapping-numeric-status-fails-test" expectedErrorType="MULE:EXPRESSION">
+    <munit:execution>
+      <munit:set-event>
+        <munit:payload value='#[output application/json --- { id: "C-1003", statusCode: 1, createdAt: "20240105" }]' mediaType="application/json"/>
+      </munit:set-event>
+      <ee:transform>
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+import * from dwl::customer::CustomerMapping
+output application/json
+---
+toCustomer(payload)]]></ee:set-payload></ee:message>
+      </ee:transform>
+    </munit:execution>
+  </munit:test>
+
 </mule>

@@ -10,13 +10,13 @@ It shows how errors reach the caller, where configuration lives, how a log entry
 
 | File | What it shows |
 | --- | --- |
-| `src/main/mule/common/global-config.xml` | Every global element once (FLOW-3): the property files, `configuration defaultErrorHandler-ref` (MERR-1), the listener, and the backend request config with `responseTimeout` from a property (MERR-3, CFG-1). The `env` global property defaults to `local`; the deploy sets `-Denv=<name>`. |
+| `src/main/mule/common/global-config.xml` | Every global element once (FLOW-3): the property files, `configuration defaultErrorHandler-ref` (MERR-1), the listener, and the backend request config with `responseTimeout` and a connection timeout (`sockets:tcp-client-socket-properties connectionTimeout`, namespace `sockets`, no extra dependency) from properties (MERR-3, CFG-1). The `env` global property defaults to `local`; the deploy sets `-Denv=<name>`. |
 | `src/main/mule/common/common-error.xml` | The global error handler: `CUSTOMERS:NOT_FOUND` 404, `HTTP:TIMEOUT` 504, `HTTP:CONNECTIVITY` 503, anything else 500, each with a fixed body and never `error.description` (MERR-2, MERR-3), and one sub-flow that logs the failure with the correlation id and the error type (MLOG-1, MLOG-2). |
 | `src/main/mule/customers-api.xml` | The entry flow: the listener answers with `vars.httpStatus`, set by the handler, and logs the request at entry and exit as JSON objects with the correlation id, never the payload (MLOG-1, MLOG-2). |
 | `src/main/mule/impl/customers-impl.xml` | The work, in a sub-flow: the backend call with an `error-mapping` from `HTTP:NOT_FOUND` to the app's `CUSTOMERS:NOT_FOUND`, then the mapping through the module. |
 | `src/main/resources/dwl/customer/CustomerMapping.dwl` | A module with a type and typed, pure functions (DW-5, DW-6), a `match` whose `else` fails with the unknown value (DW-7), and explicit date formats in and out (DW-8). |
 | `src/main/resources/properties/` | `config.yaml` for what every environment shares, and one `config-<env>.yaml` per environment, the backend's protocol included (CFG-3). |
-| `src/test/munit/customers-api-test-suite.xml` | Five tests through the listener (MUNIT-5): 200, and one per mapped error type, raised by a mock of the backend call (MUNIT-2, MUNIT-6). Two tests of the module alone: a missing field, an unknown status (DWTEST-1; the module takes one row, so there is no collection to test empty). |
+| `src/test/munit/customers-api-test-suite.xml` | Five tests through the listener (MUNIT-5): 200, and one per mapped error type, raised by a mock of the backend call (MUNIT-2, MUNIT-6). Three tests of the module alone: a missing field, an unknown status, a status sent as a number (DWTEST-1; the module takes one row, so there is no collection to test empty). |
 
 ## What the tests prove (mutation checks)
 
