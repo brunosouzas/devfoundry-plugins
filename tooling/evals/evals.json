@@ -155,6 +155,21 @@
           "grader": "script"
         }
       ]
+    },
+    {
+      "id": "TAPI",
+      "prompt_file": "tooling/evals/cases/TAPI/prompt.md",
+      "files": [
+        "tooling/evals/cases/TAPI/fixture/"
+      ],
+      "expected_output": "GET /jobs and GET /jobs/{jobRef} of wrs-jobs-sys implemented from docs/requirements on the company template, following the project profile, with MUnit tests that pass.",
+      "expectations": [
+        {
+          "id": "A1-F2",
+          "text": "The 15 rubric items of tooling/evals/cases/TAPI/grading.md",
+          "grader": "script: tooling/evals/cases/TAPI/grade.py; review: tooling/evals/cases/TAPI/review-brief.md; build: mvn clean test"
+        }
+      ]
     }
   ],
   "run_checks": [

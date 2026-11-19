@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ACME template: global elements of every ACME API. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
+
+  <global-property doc:name="Default environment" name="env" value="local"/>
+  <configuration-properties doc:name="Common properties" file="properties/config.yaml"/>
+  <configuration-properties doc:name="Environment properties" file="properties/config-${env}.yaml"/>
+  <configuration doc:name="Configuration" defaultErrorHandler-ref="template-error-handler"/>
+
+  <http:listener-config name="template-listener-config" doc:name="HTTP listener config">
+    <http:listener-connection host="0.0.0.0" port="${http.port}"/>
+  </http:listener-config>
+
+  <!-- The spec the router loads: api.spec in properties/config.yaml. -->
+  <apikit:config name="template-api-config" doc:name="APIkit config" api="${api.spec}" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus"/>
+</mule>

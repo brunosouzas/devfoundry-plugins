@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ACME template: JSON log entries on the console. -->
+<Configuration>
+  <Appenders>
+    <Console name="console" target="SYSTEM_OUT">
+      <JsonLayout compact="true" eventEol="true" properties="false"/>
+    </Console>
+  </Appenders>
+  <Loggers>
+    <AsyncRoot level="INFO">
+      <AppenderRef ref="console"/>
+    </AsyncRoot>
+  </Loggers>
+</Configuration>

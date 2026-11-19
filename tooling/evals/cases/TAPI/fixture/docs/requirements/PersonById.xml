@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope" xmlns:wrs="http://example.test/wrs">
+  <soap12:Body>
+    <wrs:QueryWSResponse>
+      <wrs:QueryWSResult>
+        <Person>
+          <Person__Id>5000000000000000000101</Person__Id>
+          <Person__FirstName>ALEX</Person__FirstName>
+          <Person__LastName>SAMPLE ZZTEST</Person__LastName>
+          <Person__DateOfBirth>21/03/1988</Person__DateOfBirth>
+          <Phones>
+            <Phone><Phone__Number>07700900111</Phone__Number><Phone__CreTime>02/01/2025 10:00</Phone__CreTime></Phone>
+            <Phone><Phone__Number>0770090</Phone__Number><Phone__CreTime>10/06/2026 09:00</Phone__CreTime></Phone>
+          </Phones>
+          <Emails>
+            <Email><Email__Address>alex.sample@example.test</Email__Address><Email__CreTime>02/01/2025 10:00</Email__CreTime></Email>
+            <Email><Email__Address>not-an-address</Email__Address><Email__CreTime>11/06/2026 09:00</Email__CreTime></Email>
+          </Emails>
+          <Flags>
+            <Flag><Flag__Name>CUSTOMER PORTAL USER</Flag__Name><Flag__Active>Y</Flag__Active></Flag>
+          </Flags>
+        </Person>
+      </wrs:QueryWSResult>
+    </wrs:QueryWSResponse>
+  </soap12:Body>
+</soap12:Envelope>

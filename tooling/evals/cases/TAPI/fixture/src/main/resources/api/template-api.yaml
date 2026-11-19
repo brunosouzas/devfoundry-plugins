@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: ACME Template API
+  version: 1.0.0
+  description: Placeholder spec of the ACME template. Each API replaces it with its own.
+servers:
+  - url: /api
+paths:
+  /templates:
+    get:
+      summary: Sample resource of the template
+      responses:
+        "200":
+          description: Samples
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    name: { type: string }
+  /health-check:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: The API is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  app: { type: string }

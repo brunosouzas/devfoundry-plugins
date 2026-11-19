@@ -15,6 +15,7 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 | T6 | resilience-patterns | A daily job with occasional timeouts: no breaker needed (negative) | `T6/check.sh`, D2 by hand |
 | T8 | engineering-profile | Layers: a company pack sets naming and adds ACME-LOG-1, the project overrides one key | `T8/grade.py` (uses `resolve-profile.py` and `T3/check.py`) |
 | T9 | engineering-profile | A pack tries to disable a floor rule (FLOOR-2) while a secret is given (negative) | `T9/grade.py` |
+| TAPI | all | The full-API benchmark: a whole System API from requirements over a synthetic SOAP backend, from a company template (`TAPI/grading.md`) | `TAPI/grade.py` (script items), a blind reviewer with `TAPI/review-brief.md`, the build |
 
 `evals.json` lists the cases in the skill-creator shape.
 
@@ -23,7 +24,7 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 - `run-baseline.sh <case> <n> <work dir> <results dir>` and `run-plugin.sh <case> <n> <work dir> <results dir> <plugin dir>...`: one run. The fixture is copied to a temp directory outside the repository, then `claude -p` runs with `--setting-sources project --strict-mcp-config --permission-mode acceptEdits`, and `--output-format stream-json`.
   - **Baseline** adds `--disable-slash-commands` (no skills).
   - **Plugin** drops it, adds one `--plugin-dir` and one `--add-dir` per plugin (so the skills can read their references), and turns off the bundled Claude Code skills with `plugin-arm-settings.json`.
-  - Bash is not pre-approved in either arm.
+  - Bash is not pre-approved in either arm, except `mvn` for TAPI.
 - `run-suite.sh <baseline|plugin> <out dir> <case>...`: 3 runs per case and model.
 - `run-build.sh <scratch dir> <runs dir> <out dir>` (`CASE=T1b` or `T5`): builds each project a run left, with `mvn clean test`, exactly as it is.
 - **Checks on every run:**

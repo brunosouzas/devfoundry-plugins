@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ACME template: the error handler of every ACME API. Status and message come from dwl/error/customErrors.dwl. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <error-handler name="template-error-handler" doc:name="Template error handler">
+    <on-error-propagate type="ANY" doc:name="On error">
+      <ee:transform doc:name="Map the error">
+        <ee:message><ee:set-payload><![CDATA[%dw 2.0
+import errorFor from dwl::error::customErrors
+output application/json
+var e = errorFor((error.errorType.namespace default "MULE") ++ ":" ++ (error.errorType.identifier default "UNKNOWN"))
+---
+{ code: e.code, message: e.message, correlationId: correlationId }]]></ee:set-payload></ee:message>
+        <ee:variables><ee:set-variable variableName="httpStatus"><![CDATA[%dw 2.0
+import errorFor from dwl::error::customErrors
+output application/java
+---
+errorFor((error.errorType.namespace default "MULE") ++ ":" ++ (error.errorType.identifier default "UNKNOWN")).status]]></ee:set-variable></ee:variables>
+      </ee:transform>
+      <flow-ref name="audit-end" doc:name="Audit end"/>
+    </on-error-propagate>
+  </error-handler>
+</mule>

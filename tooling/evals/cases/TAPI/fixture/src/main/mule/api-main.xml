@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ACME template: the API entry point, the audit log of every request, the health check, and a sample resource. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <flow name="api-main" doc:description="Receives every request under /api, writes the audit start and end, and routes it by the spec.">
+    <http:listener config-ref="template-listener-config" path="/api/*" doc:name="Listener">
+      <http:response statusCode="#[vars.httpStatus default 200]">
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+      </http:response>
+      <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body>#[payload]</http:body>
+        <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+      </http:error-response>
+    </http:listener>
+    <flow-ref name="audit-start" doc:name="Audit start"/>
+    <apikit:router config-ref="template-api-config" doc:name="APIkit Router"/>
+    <flow-ref name="audit-end" doc:name="Audit end"/>
+  </flow>
+
+  <!-- ACME audit: every API writes one START and one END entry per request, with the correlation id. -->
+  <sub-flow name="audit-start" doc:description="Writes the audit START entry of a request.">
+    <logger level="INFO" doc:name="Audit START" message="#[%dw 2.0 import auditEntry from dwl::audit::auditCustom output application/json indent=false --- auditEntry('START', correlationId, attributes.requestPath default '')]"/>
+  </sub-flow>
+  <sub-flow name="audit-end" doc:description="Writes the audit END entry of a request.">
+    <logger level="INFO" doc:name="Audit END" message="#[%dw 2.0 import auditEntry from dwl::audit::auditCustom output application/json indent=false --- auditEntry('END', correlationId, '')]"/>
+  </sub-flow>
+
+  <flow name="get:\health-check:template-api-config" doc:description="ACME health check: the API is up.">
+    <ee:transform doc:name="Health check response">
+      <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{ status: "UP", app: p('app.name') }]]></ee:set-payload></ee:message>
+    </ee:transform>
+  </flow>
+
+  <!-- Sample resource of the template, replaced by the API's own resources. -->
+  <flow name="get:\templates:template-api-config" doc:description="Sample resource of the template.">
+    <ee:transform doc:name="Sample response">
+      <ee:message><ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+[{ id: "T-1", name: "sample" }]]]></ee:set-payload></ee:message>
+    </ee:transform>
+  </flow>
+</mule>
