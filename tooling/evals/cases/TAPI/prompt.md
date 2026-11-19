@@ -1,0 +1,1 @@
+Implemente os endpoints GET /jobs e GET /jobs/{jobRef} desta aplicação Mule, seguindo os requisitos em docs/requirements. O projeto parte do template da empresa. O WRS não está acessível a partir daqui: os testes devem simular as respostas dele usando os exemplos de docs/requirements. Ao terminar, a aplicação deve compilar e os testes devem passar com `mvn clean test`.

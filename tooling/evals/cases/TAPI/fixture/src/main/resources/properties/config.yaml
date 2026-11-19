@@ -1,0 +1,6 @@
+http:
+  port: "8081"
+api:
+  spec: "api/template-api.yaml"
+app:
+  name: "acme-template-app"

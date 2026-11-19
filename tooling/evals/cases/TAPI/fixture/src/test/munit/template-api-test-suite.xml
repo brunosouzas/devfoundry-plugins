@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+
+  <munit:config name="template-api-test-suite.xml"/>
+
+  <http:request-config name="template-test-client">
+    <http:request-connection host="localhost" port="${http.port}"/>
+  </http:request-config>
+
+  <munit:test name="health-check-is-up-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="api-main"/>
+      <munit:enable-flow-source value="get:\health-check:template-api-config"/>
+    </munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="template-test-client" method="GET" path="/api/health-check">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+      <munit-tools:assert-that expression="#[payload.status]" is='#[MunitTools::equalTo("UP")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="templates-sample-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="api-main"/>
+      <munit:enable-flow-source value="get:\templates:template-api-config"/>
+    </munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="template-test-client" method="GET" path="/api/templates">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+    </munit:validation>
+  </munit:test>
+
+  <munit:test name="unknown-resource-gives-404-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="api-main"/>
+    </munit:enable-flow-sources>
+    <munit:execution>
+      <http:request config-ref="template-test-client" method="GET" path="/api/unknown">
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(404)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("NOT_FOUND")]'/>
+    </munit:validation>
+  </munit:test>
+</mule>

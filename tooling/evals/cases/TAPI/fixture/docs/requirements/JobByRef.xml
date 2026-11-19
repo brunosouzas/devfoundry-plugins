@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soap12:Envelope xmlns:soap12="http://www.w3.org/2003/05/soap-envelope" xmlns:wrs="http://example.test/wrs">
+  <soap12:Body>
+    <wrs:QueryWSResponse>
+      <wrs:QueryWSResult>
+        <Job>
+          <Job__Id>7000000000000000000101</Job__Id>
+          <Job__FileNo>JB-2026-000101</Job__FileNo>
+          <Job__BookingNo>BK-554433</Job__BookingNo>
+          <Job__Branch>NRT</Job__Branch>
+          <Job__TypeCode>9001000000000000000012</Job__TypeCode>
+          <Job__Flags>STR</Job__Flags>
+          <Job__Flags2></Job__Flags2>
+          <Job__CreatedUTC>14/07/2026 09:15</Job__CreatedUTC>
+          <Job__ReportedTime>14/07/2026 10:02</Job__ReportedTime>
+          <Job__Status>IN_PROGRESS</Job__Status>
+          <Job__OutcomeCode>P1</Job__OutcomeCode>
+          <Job__Outcome>Parts ordered</Job__Outcome>
+          <Job__Closed>N</Job__Closed>
+          <Parties>
+            <Party><Party__Role>OWN</Party__Role><Party__EntityType>Person</Party__EntityType><Person__Id>5000000000000000000101</Person__Id></Party>
+            <Party><Party__Role>DRV</Party__Role><Party__EntityType>Person</Party__EntityType><Person__Id>5000000000000000000102</Person__Id></Party>
+            <Party><Party__Role>WIT</Party__Role><Party__EntityType>Person</Party__EntityType><Person__Id>5000000000000000000103</Person__Id></Party>
+            <Party><Party__Role>LEAD</Party__Role><Party__EntityType>Person</Party__EntityType><Person__Id>5100000000000000000901</Person__Id><Person__FirstName>North</Person__FirstName><Person__LastName>Mobile Team</Person__LastName><Person__BadgeNo>C-0901</Person__BadgeNo></Party>
+          </Parties>
+          <Notes>
+            <Note><Note__SubType>CU_OUTBOUND</Note__SubType><Note__CreTime>14/07/2026 11:30</Note__CreTime></Note>
+            <Note><Note__SubType>INTERNAL</Note__SubType><Note__CreTime>15/07/2026 08:00</Note__CreTime></Note>
+            <Note><Note__SubType>CU_OUTBOUND</Note__SubType><Note__CreTime>15/07/2026 16:45</Note__CreTime></Note>
+          </Notes>
+          <Inspections>
+            <Inspection><Inspection__Code>BRK-CHK</Inspection__Code><Inspection__Mandatory>Y</Inspection__Mandatory></Inspection>
+            <Inspection><Inspection__Code>TYR-CHK</Inspection__Code><Inspection__Mandatory>N</Inspection__Mandatory></Inspection>
+          </Inspections>
+        </Job>
+      </wrs:QueryWSResult>
+    </wrs:QueryWSResponse>
+  </soap12:Body>
+</soap12:Envelope>

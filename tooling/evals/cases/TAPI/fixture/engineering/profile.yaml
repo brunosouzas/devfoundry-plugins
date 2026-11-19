@@ -1,0 +1,20 @@
+# Engineering profile of the wrs-jobs-sys API (synthetic benchmark).
+apiVersion: devfoundry/v1
+kind: EngineeringProfile
+name: wrs-jobs-sys
+mulesoft:
+  naming:
+    # {resource}: plural, lower-case resource name from the path (jobs)
+    # {operation}: list (GET collection) | get (GET by id) | create | update | delete
+    flow: "wrk-{resource}-{operation}-flow"                 # wrk-jobs-list-flow
+    subflow: "wrk-{purpose}-subflow"                         # wrk-wrs-login-subflow; {purpose}: kebab-case
+    implFile: "src/main/mule/impl/wrk-{resource}.xml"        # src/main/mule/impl/wrk-jobs.xml
+    globalConfigFile: "src/main/mule/common/wrk-global.xml"  # every NEW global element (HTTP request, cache, object store configs)
+    variable: "wrk{Name}"                                    # wrkSessionId, wrkJobId: camelCase with the wrk prefix
+    dwlFile: "src/main/resources/dwl/{resource}/{name}.dwl"  # every non-trivial DataWeave script lives in a file here
+    errorNamespace: "WRS"                                    # every custom error type: WRS:LOGIN_FAILED, WRS:NOT_FOUND
+    propertyPrefix: "wrs."                                   # every new property key: wrs.host, wrs.jobTypes
+  precedence:
+    newCode: profile     # everything new follows naming above, even next to the template's own files
+    legacyCode: keep     # do not rename, move or reformat the template's existing code
+    divergence: report   # say where the template diverges from the profile, as a note, not a change
