@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- Three rules from the first use of the plugins on a real repository, each behaviour reproduced in a Mule 4.9.5 project with MUnit 3.4 before the rule was written. `mule-engineering` 1.1.0, `resilience-patterns` 1.1.0, `integration-patterns` 1.0.1.
+  - MUNIT-7 (`auto`): a test that asserts or verifies anything after the flow fails catches the error with `try` and `on-error-continue`; never `expectedErrorType` with a `munit:validation`, which MUnit then skips, so the test passes whatever the flow did.
+  - MERR-3 now asks for a connection timeout from a property too (`sockets:tcp-client-socket-properties connectionTimeout`): `responseTimeout` does not bound the TCP connect, and a host that did not answer the connect failed after about 30 s instead of 2.2 s with a 1 s connection timeout. Every HTTP request config of the verified applications sets one, and the resilience references count it in every worst case (retry, circuit breaker, the bounded fan-out's budget).
+  - DW-7 and DWTEST-1: a `match` on literal cases checks the type first, since `"3" match { case 3 -> ... }` takes the `case 3` branch; the tests try a literal as the wrong type.
 - Stack names: the technology skills carry `metadata.aliases`, the names people write on the `Stack:` line of a repository's `AGENTS.md` (`Stack: Mule 4, MUnit, DataWeave`), so a process that loads one skill per technology finds them: `mule-app` (MuleSoft, Mule, Mule 4, Anypoint, CloudHub), `apikit`, `dataweave` (DataWeave 2, DWL), `munit` (MUnit 3, MUnit Tools), `mule-sdk` (Mule extension, Mule connector, mule-plugin, dw-library), `api-contract` (RAML, OpenAPI, OAS, Swagger, API spec). They replace the aliases the retired `mulesoft` and `api` plugins of agent-skills carried. `mule-engineering` 1.0.1, `api-contracts` 1.0.1.
 
 ## 1.0.0, 2026-11-19

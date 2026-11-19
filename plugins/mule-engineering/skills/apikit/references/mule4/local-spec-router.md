@@ -12,7 +12,7 @@ It shows routing and testing, nothing else. A real spec also follows the api-con
 | --- | --- |
 | `src/main/resources/api/orders-api.yaml` | The API's own OAS 3 spec in the project: parameters with enum and pattern, the shared `Error` type, one response per status the API returns. |
 | `src/main/resources/config.yaml` | `api.spec: "orders-api.yaml"`: the router reads the spec through a property, so moving to the Exchange dependency later changes one value (`resource::<groupId>:<assetId>:<version>:oas:zip:orders-api.yaml`, APIKIT-1). |
-| `src/main/mule/common/global-config.xml` | `apikit:config api="${api.spec}"`, the listener config, and the backend request config with a `responseTimeout` from properties. |
+| `src/main/mule/common/global-config.xml` | `apikit:config api="${api.spec}"`, the listener config, and the backend request config with a `responseTimeout` and a connection timeout from properties (mule-app MERR-3). |
 | `src/main/mule/orders-api.xml` | The listener flow (router plus the APIKIT error responses), one thin implementation flow per operation (APIKIT-3), the private flows that call the backend, and an `error-mapping` from `HTTP:NOT_FOUND` to the app's `ORDERS:NOT_FOUND`. |
 | `src/test/munit/orders-api-test-suite.xml` | Every test sends an HTTP request to the listener (MUNIT-5): 200 for each operation, 400 for an invalid enum (the backend is never called), 404 when the backend has no such order. |
 | `pom.xml` | `dynamicPorts` in the `munit-maven-plugin` configuration: a free port for `http.port` during tests. |

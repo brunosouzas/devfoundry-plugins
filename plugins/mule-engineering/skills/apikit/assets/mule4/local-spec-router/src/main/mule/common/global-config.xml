@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mule xmlns="http://www.mulesoft.org/schema/mule/core"
       xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
       xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit"
       xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="
         http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
         http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
         http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd">
 
   <configuration-properties doc:name="Properties" file="config.yaml"/>
@@ -19,6 +21,11 @@
   <apikit:config name="orders-api-config" doc:name="Orders API router config" api="${api.spec}" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus"/>
 
   <http:request-config name="orders-backend-config" doc:name="Orders backend request config" responseTimeout="${orders.backend.timeoutMillis}">
-    <http:request-connection host="${orders.backend.host}" port="${orders.backend.port}"/>
+    <http:request-connection host="${orders.backend.host}" port="${orders.backend.port}">
+      <!-- responseTimeout does not bound the TCP connect: without this, an unreachable host waits for the connector's default connection timeout, 30 s. -->
+      <http:client-socket-properties>
+        <sockets:tcp-client-socket-properties connectionTimeout="${orders.backend.connectionTimeoutMillis}"/>
+      </http:client-socket-properties>
+    </http:request-connection>
   </http:request-config>
 </mule>

@@ -32,7 +32,7 @@ These patterns are not from the *Enterprise Integration Patterns* catalog. They 
 ## Rules
 
 - Never infer the problem from the developer's wording alone: read the code and the dependency's documentation first.
-- A timeout is always part of the fix for a slow dependency, but a timeout alone does not stop the traffic.
+- A timeout is always part of the fix for a slow dependency, a connection timeout as well as a response timeout (mule-app MERR-3), but a timeout alone does not stop the traffic.
 - A pattern that changes behaviour needs a test that shows the behaviour (for the Circuit Breaker: an open circuit does not call the dependency; for session renewal: a rejected session is renewed once and a second rejection does not loop; for the fan-out: too many items and a spent budget start no call; for retries: a transient failure is retried and a `404` is not).
 - Retry only what is safe to repeat and only transient failures; never retry while a circuit is open, and keep every retry inside the request's time budget.
 - Duplicate messages and side effects that must happen once are the `integration-patterns` skill. A flow can need both skills.

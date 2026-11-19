@@ -7,6 +7,8 @@ carrier:
   basePath: "/v3"
   # Well below the default (60 s): a slow call must not hold a thread for long. Set from the dependency's normal latency.
   responseTimeoutMillis: "2000"
+  # Bounds the TCP connect, which responseTimeout does not (the connector's default is 30 s). A worst case counts both.
+  connectionTimeoutMillis: "1000"
 breaker:
   # Consecutive dependency failures (timeout, connectivity, 5xx) that open the circuit.
   failureThreshold: "3"

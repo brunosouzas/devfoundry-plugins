@@ -18,10 +18,10 @@ Read these files before writing the flow:
 | File | What it shows |
 | --- | --- |
 | `pom.xml` | The `mule-objectstore-connector` dependency (classifier `mule-plugin`) |
-| `src/main/mule/global.xml` | `responseTimeout` on the request config, and the state store (in memory, per worker, with the trade-off stated) |
+| `src/main/mule/global.xml` | `responseTimeout` and a connection timeout (`sockets:tcp-client-socket-properties connectionTimeout`) on the request config, and the state store (in memory, per worker, with the trade-off stated) |
 | `src/main/mule/quotes.xml` | The API flow that maps `BREAKER:OPEN` to `503` + `Retry-After`, and the breaker flow without a source: read the state, fail fast or start a trial, call, then count or reset |
 | `src/test/munit/circuit-breaker-test-suite.xml` | The 5 tests: open does not call, the threshold opens, a 4xx does not trip, the trial's success closes, the trial's failure reopens |
-| `src/main/resources/config.yaml` | `failureThreshold`, `openSeconds` and the timeout, with the reasons for their values |
+| `src/main/resources/config.yaml` | `failureThreshold`, `openSeconds` and both timeouts, with the reasons for their values |
 
 Keep the breaker logic in a flow without a source, so that MUnit can call it directly and other flows can reuse it for the same dependency. Use one state entry per dependency (the key is the dependency, not the request).
 
@@ -42,7 +42,7 @@ Either way, the count and the trial are **approximate under concurrency**: two r
 
 ## Failures that count, in Mule error types
 
-`HTTP:TIMEOUT`, `HTTP:CONNECTIVITY`, `HTTP:INTERNAL_SERVER_ERROR`, `HTTP:BAD_GATEWAY`, `HTTP:SERVICE_UNAVAILABLE` and `HTTP:GATEWAY_TIMEOUT`. A `4xx` is handled by a separate `on-error-propagate` that does not count it, and on the trial call it closes the circuit. Set `responseTimeout` on the request config.
+`HTTP:TIMEOUT`, `HTTP:CONNECTIVITY`, `HTTP:INTERNAL_SERVER_ERROR`, `HTTP:BAD_GATEWAY`, `HTTP:SERVICE_UNAVAILABLE` and `HTTP:GATEWAY_TIMEOUT`. A `4xx` is handled by a separate `on-error-propagate` that does not count it, and on the trial call it closes the circuit. Set `responseTimeout` on the request config and a connection timeout on its connection (mule-app MERR-3).
 
 ## The breaker test in MUnit
 
