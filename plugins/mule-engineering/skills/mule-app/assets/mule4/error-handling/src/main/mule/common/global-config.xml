@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Global elements, defined once (FLOW-3). Every environment value comes from properties (CFG-1, CFG-3). -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <!-- The environment picks the second file; a -Denv=<name> at deploy overrides this default. -->
+  <global-property doc:name="Default environment" name="env" value="local"/>
+  <configuration-properties doc:name="Common properties" file="properties/config.yaml"/>
+  <configuration-properties doc:name="Environment properties" file="properties/config-${env}.yaml"/>
+
+  <!-- One error handler for the whole application (MERR-1). -->
+  <configuration doc:name="Application configuration" defaultErrorHandler-ref="common-error-handler"/>
+
+  <http:listener-config name="customers-api-listener-config" doc:name="Customers API listener config">
+    <http:listener-connection host="0.0.0.0" port="${http.port}"/>
+  </http:listener-config>
+
+  <!-- The response timeout is a property, never the connector's default (MERR-3, CFG-1). -->
+  <http:request-config name="customers-backend-config" doc:name="Customers backend request config" responseTimeout="${customers.backend.responseTimeoutMillis}">
+    <http:request-connection protocol="${customers.backend.protocol}" host="${customers.backend.host}" port="${customers.backend.port}"/>
+  </http:request-config>
+</mule>

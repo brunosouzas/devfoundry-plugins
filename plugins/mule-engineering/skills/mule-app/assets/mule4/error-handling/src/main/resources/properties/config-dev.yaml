@@ -1,0 +1,8 @@
+# A synthetic dev environment: the deploy sets -Denv=dev.
+http:
+  port: "8081"
+customers:
+  backend:
+    protocol: "HTTPS"
+    host: "customers-backend.dev.example.com"
+    port: "443"

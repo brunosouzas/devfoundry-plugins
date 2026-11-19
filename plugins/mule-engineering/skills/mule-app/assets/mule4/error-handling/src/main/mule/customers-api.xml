@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The entry point: the listener and the request's start and end logs. The work is in impl/. -->
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+  <flow name="customers-api-main" doc:description="Receives GET /api/customers/{customerId}, logs it, and answers with the customer or the error the global handler built.">
+    <http:listener config-ref="customers-api-listener-config" path="/api/customers/{customerId}" allowedMethods="GET" doc:name="Listen for customer requests">
+      <http:response statusCode="#[vars.httpStatus default 200]"/>
+      <http:error-response statusCode="#[vars.httpStatus default 500]">
+        <http:body>#[payload]</http:body>
+      </http:error-response>
+    </http:listener>
+    <logger level="INFO" doc:name="Log request received" message='#[output application/json indent=false --- { event: "request.received", correlationId: correlationId, path: attributes.requestPath }]'/>
+    <flow-ref name="get-customer" doc:name="Get the customer"/>
+    <logger level="INFO" doc:name="Log request answered" message='#[output application/json indent=false --- { event: "request.answered", correlationId: correlationId, status: vars.httpStatus default 200 }]'/>
+  </flow>
+</mule>

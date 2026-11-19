@@ -9,7 +9,7 @@ Claude Code plugins for MuleSoft and API engineering. They make an agent think a
 | `resilience-patterns` | Finds the risk of a slow or failing dependency taking the caller down, and applies a stability pattern, or says why a retry is enough. Catalog: **Circuit Breaker**. |
 | `engineering-profile` | Applies the project's `engineering/profile.yaml`: naming rules for flows, files, global elements and variables, and how new code relates to legacy code. The same skill gives different names under different profiles, without editing the skill. |
 | `api-contracts` | Makes every endpoint start from a spec that describes it: checks the spec the app actually loads, and writes or extends it in the project when the published one (a template placeholder, an Exchange asset) lacks the operations. Rules for OpenAPI 3 and RAML contracts. |
-| `mule-engineering` | Mule 4 rules with verified examples. Today: the APIkit router (which spec it loads, flows that match it) and MUnit tests that call each endpoint through the HTTP listener, so a route missing from the spec fails a test instead of answering 404 in production. |
+| `mule-engineering` | Mule 4 rules with verified examples: flows, layout, properties, the global error handler (a backend timeout reaches the caller as 504, never 408), structured logs and the build (`mule-app`); DataWeave modules and their tests (`dataweave`); the APIkit router and the spec it loads (`apikit`); MUnit tests that call each endpoint through the HTTP listener, so a route missing from the spec fails a test instead of answering 404 in production (`munit`). |
 
 Each pattern has a platform-neutral reference and a Mule 4 realization backed by a project that builds and passes its MUnit tests.
 
@@ -31,7 +31,7 @@ The skills load on their own when the work matches. You can also ask for them by
 
 ## Project profile
 
-Put the conventions in `engineering/profile.yaml` at the project root. See `profiles/SCHEMA.md` and the examples in `profiles/examples/`. A profile can extend your company's or your own rules packs, kept in private repositories, and override, disable or add rules by ID; floor rules (synthetic test data, no secrets in code, a declared security scheme) cannot be turned off. `plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py` shows the rules in effect. Without a profile, the skills follow the conventions already in the project, and say so.
+Put the conventions in `engineering/profile.yaml` at the project root. See `profiles/SCHEMA.md` and the examples in `profiles/examples/`. A profile can extend your company's or your own rules packs, kept in private repositories, and override, disable or add rules by ID; floor rules (synthetic test data, no secrets in code, a declared security scheme, no payload or personal data in logs) cannot be turned off. `plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py` shows the rules in effect. Without a profile, the skills follow the conventions already in the project, and say so.
 
 ## What was measured
 

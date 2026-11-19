@@ -59,7 +59,7 @@
     },
     {
       "name": "mule-engineering",
-      "description": "Mule 4 engineering rules with verified examples: the APIkit router and the spec it loads, and MUnit tests that call each endpoint through the HTTP listener.",
+      "description": "Mule 4 engineering rules with verified examples: flows, properties, the global error handler, logs and the build; DataWeave; the APIkit router and the spec it loads; MUnit tests that call each endpoint through the HTTP listener.",
       "author": {
         "name": "Bruno Souza"
       },

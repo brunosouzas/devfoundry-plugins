@@ -18,6 +18,6 @@ What is particular to testing Mule 4 applications with MUnit 3. `${CLAUDE_SKILL_
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version, for example "breaks MUNIT-5 (munit 0.2.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and follow every rule. Cite a rule by its ID and this skill's version, for example "breaks MUNIT-5 (munit 0.3.0)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.

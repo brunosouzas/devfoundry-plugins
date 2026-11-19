@@ -19,7 +19,7 @@ The owner of the merge rules. `profiles/SCHEMA.md` in the devFoundry repository 
 - **`disable`:** `<ID>: "<reason>"`. The reason is a required string.
 - **`add`:** a list of `{id, text, why, check}`, all four required. The ID has the form `PREFIX-N` (`ACME-LOG-1`), must not exist yet, and its prefix must not be a public prefix (`CON`, `MUNIT`...), so a future public rule cannot collide with it. To change a rule that exists, use `override`.
 - **One change per rule per layer:** the same ID in two of `add`, `override` and `disable` of one layer is an error.
-- **Floor rules**, marked `(floor)` in a `rules.md` (`FLOOR-1`, `FLOOR-2`, `APISEC-1`): no layer can disable or override them. The attempt is **refused**: the public rule stays, and the refusal is reported. It is not an error: the rest of the profile still applies. A layer can `add` a stricter rule of its own.
+- **Floor rules**, marked `(floor)` in a `rules.md` (`FLOOR-1`, `FLOOR-2`, `APISEC-1`, `MLOG-2`): no layer can disable or override them. The attempt is **refused**: the public rule stays, and the refusal is reported. It is not an error: the rest of the profile still applies. A layer can `add` a stricter rule of its own.
 
 ## Packs
 

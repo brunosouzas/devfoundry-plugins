@@ -27,7 +27,7 @@ Each case has `prompt.md` (verbatim; it never names a pattern), `fixture/` (the 
 - `run-suite.sh <baseline|plugin> <out dir> <case>...`: 3 runs per case and model.
 - `run-build.sh <scratch dir> <runs dir> <out dir>` (`CASE=T1b` or `T5`): builds each project a run left, with `mvn clean test`, exactly as it is.
 - **Checks on every run:**
-  - `verify-init.py` (baseline) and `verify-init-plugin.py <plugins> <skills>` (plugin): the run was isolated, and in the plugin arm which skills fired. With all six plugins: `verify-init-plugin.py api-first,engineering-profile,integration-patterns,resilience-patterns,api-contracts,mule-engineering api-first:api-first-implementation,engineering-profile:project-profile,integration-patterns:integration-patterns,resilience-patterns:resilience-patterns,api-contracts:api-contract,mule-engineering:apikit,mule-engineering:munit <run.jsonl>...`.
+  - `verify-init.py` (baseline) and `verify-init-plugin.py <plugins> <skills>` (plugin): the run was isolated, and in the plugin arm which skills fired. With all six plugins: `verify-init-plugin.py api-first,engineering-profile,integration-patterns,resilience-patterns,api-contracts,mule-engineering api-first:api-first-implementation,engineering-profile:project-profile,integration-patterns:integration-patterns,resilience-patterns:resilience-patterns,api-contracts:api-contract,mule-engineering:apikit,mule-engineering:munit,mule-engineering:mule-app,mule-engineering:dataweave <run.jsonl>...`.
   - `check-reads.py`: which references and examples were read.
 
 ## Requirements

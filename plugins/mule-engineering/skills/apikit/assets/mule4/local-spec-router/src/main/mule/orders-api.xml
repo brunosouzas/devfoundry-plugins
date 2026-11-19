@@ -12,8 +12,8 @@
         http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 
   <!-- The listener flow: every request goes through the router, which checks it against the spec. -->
-  <flow name="orders-api-main">
-    <http:listener config-ref="orders-api-listener-config" path="/api/*">
+  <flow name="orders-api-main" doc:description="Receives every request under /api, routes it through the APIkit router, and maps the router's errors to responses.">
+    <http:listener config-ref="orders-api-listener-config" path="/api/*" doc:name="Listen for API requests">
       <http:response statusCode="#[vars.httpStatus default 200]">
         <http:headers>#[vars.outboundHeaders default {}]</http:headers>
       </http:response>
@@ -22,63 +22,63 @@
         <http:headers>#[vars.outboundHeaders default {}]</http:headers>
       </http:error-response>
     </http:listener>
-    <apikit:router config-ref="orders-api-config"/>
-    <error-handler>
-      <on-error-propagate type="APIKIT:BAD_REQUEST">
-        <set-variable variableName="httpStatus" value="400"/>
-        <ee:transform>
+    <apikit:router config-ref="orders-api-config" doc:name="Route by the spec"/>
+    <error-handler doc:name="Router error handler">
+      <on-error-propagate type="APIKIT:BAD_REQUEST" doc:name="On bad request">
+        <set-variable variableName="httpStatus" value="400" doc:name="Set status 400"/>
+        <ee:transform doc:name="Build bad request error">
           <ee:message><ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-{ code: "BAD_REQUEST", message: error.description }]]></ee:set-payload></ee:message>
+{ code: "BAD_REQUEST", message: "The request does not match the API spec" }]]></ee:set-payload></ee:message>
         </ee:transform>
       </on-error-propagate>
-      <on-error-propagate type="APIKIT:NOT_FOUND">
-        <set-variable variableName="httpStatus" value="404"/>
-        <ee:transform>
+      <on-error-propagate type="APIKIT:NOT_FOUND" doc:name="On resource not found">
+        <set-variable variableName="httpStatus" value="404" doc:name="Set status 404"/>
+        <ee:transform doc:name="Build not found error">
           <ee:message><ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 { code: "RESOURCE_NOT_FOUND", message: "No such resource" }]]></ee:set-payload></ee:message>
         </ee:transform>
       </on-error-propagate>
-      <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
-        <set-variable variableName="httpStatus" value="405"/>
-        <ee:transform>
+      <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED" doc:name="On method not allowed">
+        <set-variable variableName="httpStatus" value="405" doc:name="Set status 405"/>
+        <ee:transform doc:name="Build method not allowed error">
           <ee:message><ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 { code: "METHOD_NOT_ALLOWED", message: "Method not allowed" }]]></ee:set-payload></ee:message>
         </ee:transform>
       </on-error-propagate>
-      <on-error-propagate type="ORDERS:NOT_FOUND">
-        <set-variable variableName="httpStatus" value="404"/>
-        <ee:transform>
+      <on-error-propagate type="ORDERS:NOT_FOUND" doc:name="On order not found">
+        <set-variable variableName="httpStatus" value="404" doc:name="Set status 404"/>
+        <ee:transform doc:name="Build order not found error">
           <ee:message><ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
-{ code: "ORDER_NOT_FOUND", message: error.description }]]></ee:set-payload></ee:message>
+{ code: "ORDER_NOT_FOUND", message: "No order with this id" }]]></ee:set-payload></ee:message>
         </ee:transform>
       </on-error-propagate>
     </error-handler>
   </flow>
 
   <!-- APIkit implementation flows: the name is <method>:\<resource>:<apikit config>, one per operation of the spec. -->
-  <flow name="get:\orders:orders-api-config">
-    <flow-ref name="list-orders-flow"/>
+  <flow name="get:\orders:orders-api-config" doc:description="APIkit implementation of GET /orders; hands the work to list-orders-flow.">
+    <flow-ref name="list-orders-flow" doc:name="List orders"/>
   </flow>
 
-  <flow name="get:\orders\(orderId):orders-api-config">
-    <flow-ref name="get-order-flow"/>
+  <flow name="get:\orders\(orderId):orders-api-config" doc:description="APIkit implementation of GET /orders/{orderId}; hands the work to get-order-flow.">
+    <flow-ref name="get-order-flow" doc:name="Get the order"/>
   </flow>
 
-  <flow name="list-orders-flow">
+  <flow name="list-orders-flow" doc:description="Lists the orders with the requested status from the backend.">
     <http:request config-ref="orders-backend-config" method="GET" path="/orders" doc:name="Get orders from backend">
       <http:query-params>#[{ status: attributes.queryParams.status }]</http:query-params>
     </http:request>
   </flow>
 
-  <flow name="get-order-flow">
+  <flow name="get-order-flow" doc:description="Reads one order from the backend; an unknown order raises ORDERS:NOT_FOUND.">
     <http:request config-ref="orders-backend-config" method="GET" path="/orders/{orderId}" doc:name="Get order from backend">
       <error-mapping sourceType="HTTP:NOT_FOUND" targetType="ORDERS:NOT_FOUND"/>
       <http:uri-params>#[{ orderId: attributes.uriParams.orderId }]</http:uri-params>
