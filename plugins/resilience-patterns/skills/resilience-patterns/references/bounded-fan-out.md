@@ -11,14 +11,14 @@ Each call has its own timeout, but nothing bounds the request as a whole. Ten ca
 All of these hold:
 
 - A request makes **a number of calls that depends on the data** (the size of a search, the items of an order), not a fixed number.
-- The requirements **do not bound that number** to something small, or the bound is only implied (a date range with no stated volume).
+- The requirements **do not bound that number** to something small, or the bound is only implied (a date range with no stated volume); **or** N is bounded but N calls at their worst case go past what the caller waits. In that second case apply only the budget and the bounded concurrency (parts 2 and 3), not a bound on N.
 - Someone **waits** for the request: a client, a gateway, a caller with its own timeout.
 
 On an **existing API** that consumers already use, a new bound changes what they see: a request that returned 80 items now gets `422`. That is a breaking change to the contract (api-contracts CON-5, class `ask`): propose the bound, its value and the error to the developer. Apply it directly to a new endpoint, or when the requirements ask for it.
 
 ## When NOT to use
 
-- **The number is fixed and small**, or the requirements bound it (at most five items, a page size the API enforces). Say which bound applies.
+- **The number is fixed and small**, or the requirements bound it (at most five items, a page size the API enforces): the bound on N (part 1) is not needed. Say which bound applies. The budget and bounded concurrency (parts 2 and 3) still apply when someone waits and N calls at their worst case exceed what the caller waits: 20 sequential calls with a 2 s response timeout can take 40 s, plus each call's connection timeout.
 - **Nobody waits:** a batch or an asynchronous job can take as long as it needs; bound its concurrency to protect the dependency, but a request deadline does not apply.
 - **The dependency has a bulk operation** (read many ids in one call): use it instead of the fan-out.
 

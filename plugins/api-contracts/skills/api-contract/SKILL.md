@@ -22,7 +22,7 @@ The spec is the contract: the router checks every request against it, and an ope
    - Never route around the spec: an implementation flow or a flow mapping for a route the spec lacks is dead code at runtime (mule-engineering's APIKIT-2; load its `apikit` skill when it is installed).
 4. **Write or change the spec** by the rules in `${CLAUDE_SKILL_DIR}/rules.md`: start from the requirements; each operation answers one of them. Reuse the project's shared types, error responses and security schemes.
    - **The layer (LAYER).** Name the API's layer in the spec's description (an assumed one goes in "Decisions for you"), keep the contract to that layer's responsibility, and name any rule of another layer the requirements put in it. A new layer, a skipped one or a shortcut to a backend is one recommendation with its costs (LAYER-5, the same decision as api-first AFI-6); until it is decided, build what the requirements describe.
-   - **The limits (NFR-1).** Every limit the code enforces (a bound on results, a time budget, a rate) is in the spec with the error it returns. A value the requirements lack is chosen as the pattern says and listed as an assumption; a value the code does not enforce (an SLA) is an open question, not a guess.
+   - **The limits (NFR-1).** Every limit the code enforces (a bound on results, a time budget, a rate) is in the spec with the error it returns. A value the requirements lack is chosen as the pattern says, written in the spec's description with the other values the pattern chose (timeouts, budget), and listed as an assumption; a value the code does not enforce (an SLA) is an open question, not a guess.
 5. **Verify:** the spec parses (the application build loads it: APIkit fails the deployment on an invalid spec), and each new operation has a test that goes through the HTTP listener and the router (mule-engineering's munit skill, MUNIT-5), so a route missing from the spec fails a test instead of answering 404 in production.
 
 ## Precedence with the project profile
@@ -31,6 +31,6 @@ The spec is the contract: the router checks every request against it, and an ope
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version when you apply or break it, for example "breaks CONTRACT-1 (api-contract 1.0.1)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version when you apply or break it, for example "breaks CONTRACT-1 (api-contract 1.1.0)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.
