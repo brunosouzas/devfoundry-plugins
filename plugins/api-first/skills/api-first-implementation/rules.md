@@ -34,6 +34,6 @@ Every rule has a `Class:` line that says how the agent acts on it: `auto`, apply
   Class: ask
 
 - **AFI-6** When an existing System API reaches the backend the change needs and the requirements or the design do not say whether to use it, recommend calling it or reaching the backend directly, with what each costs (a dependency on that API, its limits and its credentials; or a second integration with the backend to keep), and build the one the developer agrees to.
-  Why: going through a System API or around it is a layering decision of API-led connectivity, with costs on both sides; it belongs to the developer, and the recommendation makes it quick.
+  Why: going through a System API or around it is a layering decision of API-led connectivity (api-contracts LAYER-5 is the same decision: give it once), with costs on both sides; it belongs to the developer, and the recommendation makes it quick.
   Check: when AFI-4 found such an API, the answer gives the recommendation with both costs and says which way the developer chose, or that the requirements decided it.
   Class: propose

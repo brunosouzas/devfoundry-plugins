@@ -1,6 +1,6 @@
 # API contract: rules
 
-Rules for REST API contracts. RES, CON and APISEC come from common REST design practice (ported from the `api-spec` skill of brunosouzas/agent-skills, same IDs). RES-3 gained an exception for bounded results. CONTRACT and CON-5 are new in devFoundry. In an existing API, follow the conventions it already uses and report a difference instead of renaming; these rules decide new resources and types.
+Rules for REST API contracts. RES, CON and APISEC come from common REST design practice (ported from the `api-spec` skill of brunosouzas/agent-skills, same IDs). RES-3 gained an exception for bounded results. CONTRACT and CON-5 are new in devFoundry. LAYER and NFR are new in devFoundry: the API-led layers as MuleSoft publishes them, and the limits a contract states. They are rules about one API's responsibility and contract, not solution architecture: the platform, the topology, the integration strategy of a company and the design documents and reviews belong to the team's own process. In an existing API, follow the conventions it already uses and report a difference instead of renaming; these rules decide new resources and types.
 
 How to change this file:
 - **Add a rule:** copy an item, give it the next number in its group, write the rule, why it exists and how to check it. A new rule is a MINOR version of the skill.
@@ -70,4 +70,38 @@ How to change this file:
 - **APISEC-1** (floor) Every operation declares its security scheme; a public operation says so explicitly.
   Why: an operation with no declared scheme is easy to deploy unprotected.
   Check: each operation has a `securedBy:` field (RAML) or a `security:` field (OAS).
+  Class: auto
+
+## API-led layers (LAYER)
+
+- **LAYER-1** An API states its layer (system, process or experience) in its spec's description and keeps to that layer's responsibility (LAYER-2 to LAYER-4). The layer comes from the requirements, the project's name or its documents; when none says, write the layer you assume in the spec and list it in the answer's "Decisions for you" (api-first AFI-3). When the requirements put a rule of another layer in this API, follow them and name the rule and the layer it would belong to.
+  Why: the layer tells consumers what the API promises and tells maintainers what does not belong in it; a rule placed in the wrong layer is copied into every API that needs it again.
+  Check: the spec's description names the layer; an assumed layer and each rule of another layer the API holds are named in the answer.
+  Class: auto
+
+- **LAYER-2** A System API exposes one system of record in the API's own model: its contract hides the backend's protocol, sessions, field names, codes and error messages, and carries no rule that serves one consumer or one channel. A query parameter over the system's own data belongs here (any consumer may use it); a default, a hard-coded value or a behaviour that only one consumer needs is a channel rule.
+  Why: consumers of a System API must survive a change of backend or of its version; a backend name or a channel rule in its contract ties every consumer to both.
+  Check: no backend field name, code, envelope or message in the spec's types and examples; no channel rule unless LAYER-1 names it.
+  Class: auto
+
+- **LAYER-3** A Process API orchestrates or composes one or more System APIs (and other Process APIs) into a business process, and reaches backends through them. Calling a backend directly instead is the layering decision of LAYER-5.
+  Why: a Process API that calls a backend directly duplicates the System API's mapping, credentials and error handling, and breaks when the backend changes.
+  Check: the spec exposes no backend concern; the answer names each outbound dependency and its layer.
+  Class: auto
+
+- **LAYER-4** An Experience API shapes data for one channel or consumer (the fields, paging, format and errors that channel needs) and calls Process or System APIs; a business rule shared by several channels belongs in a Process API.
+  Why: a shared rule kept in one channel's API is copied, then diverges, in the next channel's.
+  Check: the contract carries the channel's shape; a business rule the requirements show other channels need is named in the answer.
+  Class: auto
+
+- **LAYER-5** A change to the layers: a new System API for a backend, a Process API that calls a backend directly, a layer folded into another or split. Give one recommendation with what each way costs (one more deployment and its operation, the latency of a hop, who owns it; or the coupling the shortcut leaves). This is the same decision as api-first AFI-6: give it once. Until it is decided, build what the requirements describe and list the choice in "Decisions for you".
+  Why: a layer is a long-lived application with an owner, a deployment and a contract; it is cheap to propose and expensive to undo.
+  Check: each such change appears in the answer once, with both costs and the developer's choice or the requirement that decided it.
+  Class: propose
+
+## Limits in the contract (NFR)
+
+- **NFR-1** Every limit the implementation enforces is in the contract with the error it returns: the largest result or date range a request may ask for (`422`), a rate limit (`429`), a time budget (`504`), and the response time when the requirements state one. A value the code needs that the requirements lack (a pattern's bound or budget) is chosen as that pattern's skill says, written in the spec and listed as an assumption in "Decisions for you". A value the code does not enforce (an SLA, a rate the platform applies) is not invented: it stays out of the spec and is listed as an open question. On a spec consumers already use, a new limit is a change to the contract (CON-5).
+  Why: a limit that is only in the code surprises every caller the first time it is reached; a stated limit lets them page, narrow or wait.
+  Check: each limit the code enforces appears in the spec with its error; each value the requirements did not give is in "Decisions for you", as an assumption or an open question.
   Class: auto
