@@ -1,6 +1,8 @@
 ---
 name: mule-app
 description: Rules for the code of a Mule 4 application, with a verified example - flows and their display names and descriptions, global configuration, project layout, properties per environment, the global error handler and how each error reaches the caller (a backend timeout is 504, never 408), structured logging with the correlation id, and the Maven build. Use when writing, changing or reviewing a Mule 4 application - a flow XML file under src/main/mule/, its global configuration, error handler, loggers or property files - recognised by a pom.xml with mule-application packaging or a mule-artifact.json. Do NOT use it for the names of flows, files and variables when the project has a profile (project-profile), the APIkit router (apikit), MUnit tests (munit), DataWeave scripts (dataweave), the API spec (api-contract), or deploy, CloudHub and API Manager configuration. It supersedes the `mulesoft` skill of brunosouzas/agent-skills when both are installed, keeping its rule IDs.
+metadata:
+  aliases: "mulesoft, mule, mule 4, anypoint, cloudhub"
 ---
 
 # Mule application
@@ -26,6 +28,6 @@ What is particular to the code of a Mule 4 application: flows, layout, configura
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks MERR-3 (mule-app 1.0.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks MERR-3 (mule-app 1.0.1)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.

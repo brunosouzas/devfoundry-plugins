@@ -1,6 +1,8 @@
 ---
 name: munit
 description: Rules for MUnit 3 tests of Mule 4 applications - what a test asserts, mocking outbound calls, error-path tests, the coverage gate, and testing each API endpoint through the HTTP listener and the APIkit router. Use when writing, changing, reviewing or fixing an MUnit test or suite under src/test/munit/, when a change adds or changes an endpoint and needs its tests, or when an MUnit run fails; recognise it by munit:test, munit-tools:mock-when or the munit-maven-plugin in a pom.xml. Do NOT use it for the flow under test itself, or for tests of a standalone DataWeave library. It supersedes the `munit` skill of the `mulesoft` plugin (brunosouzas/agent-skills) when both are installed: same IDs MUNIT-1 to MUNIT-4, plus MUNIT-5 and MUNIT-6.
+metadata:
+  aliases: "munit 3, munit tools"
 ---
 
 # MUnit
@@ -18,6 +20,6 @@ What is particular to testing Mule 4 applications with MUnit 3. `${CLAUDE_SKILL_
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks MUNIT-5 (munit 1.0.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version, for example "breaks MUNIT-5 (munit 1.0.1)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.

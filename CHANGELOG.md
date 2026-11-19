@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Added
+- Stack names: the technology skills carry `metadata.aliases`, the names people write on the `Stack:` line of a repository's `AGENTS.md` (`Stack: Mule 4, MUnit, DataWeave`), so a process that loads one skill per technology finds them: `mule-app` (MuleSoft, Mule, Mule 4, Anypoint, CloudHub), `apikit`, `dataweave` (DataWeave 2, DWL), `munit` (MUnit 3, MUnit Tools), `mule-sdk` (Mule extension, Mule connector, mule-plugin, dw-library), `api-contract` (RAML, OpenAPI, OAS, Swagger, API spec). They replace the aliases the retired `mulesoft` and `api` plugins of agent-skills carried. `mule-engineering` 1.0.1, `api-contracts` 1.0.1.
+
 ## 1.0.0, 2026-11-19
 
 The first stable release. Every plugin is 1.0.0. From here on, versions follow the rules in each `rules.md`: a new rule is a MINOR version, a rule that now says the opposite is a MAJOR one, clearer wording a PATCH, and marking a rule `(floor)` or removing the mark is MAJOR.

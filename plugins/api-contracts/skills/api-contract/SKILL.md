@@ -1,6 +1,8 @@
 ---
 name: api-contract
 description: Makes every REST endpoint start from a spec that describes it, and writes or reviews that spec (OpenAPI 3 or RAML 1.0): operations, types, errors, versioning, security, the API-led layer the API belongs to (system, process, experience) and the limits its contract states. Use before implementing, changing or reviewing an endpoint of an API that routes or validates from a spec (in Mule, an APIkit router), and when writing or reviewing the spec itself, even when the developer only asks for the endpoints "following the requirements": first check that the spec the app loads has those operations; when it is a template placeholder or a published asset that lacks them, write or extend the spec in the project. Do NOT use it to decide what the API must do (the requirements come first), for solution architecture (platform, topology, integration strategy, design documents or reviews), for the flow code (mule-engineering), for a client of someone else's API, or to add a spec or a router nobody asked for.
+metadata:
+  aliases: "raml, openapi, oas, swagger, api spec"
 ---
 
 # API contract
@@ -29,6 +31,6 @@ The spec is the contract: the router checks every request against it, and an ope
 
 ## Rules
 
-Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version when you apply or break it, for example "breaks CONTRACT-1 (api-contract 1.0.0)".
+Read `${CLAUDE_SKILL_DIR}/rules.md` and act on every rule as its `Class:` says: `auto`, apply it; `propose`, recommend it, say what it costs, and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. Cite a rule by its ID and this skill's version when you apply or break it, for example "breaks CONTRACT-1 (api-contract 1.0.1)".
 
 If the project has an `engineering/profile.yaml`, apply these rules as the `project-profile` skill (engineering-profile) resolves them: skip a rule a pack or the project disabled, use the text and class of an overridden rule, and follow the rules the packs add. A rule marked `(floor)` always applies as written here.
