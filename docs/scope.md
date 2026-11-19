@@ -39,7 +39,7 @@ The public layer never holds personal or company material, and never client data
 | Unit tests | `mule-engineering` | `munit` (endpoints through HTTP, mocks, error paths) | small gaps only |
 | API design (architecture) | to be decided | none | API-led layers (system, process, experience), resource modelling, non-functional requirements, API design review rules |
 | Integration patterns | `integration-patterns` | Idempotent Receiver | Content-Based Router, Scatter-Gather, Aggregator, Dead Letter Channel |
-| Resilience patterns | `resilience-patterns` | Circuit Breaker | retry with backoff, fan-out bounds and a total time budget for N+1 calls, re-login when a session expires |
+| Resilience patterns | `resilience-patterns` | Circuit Breaker, session renewal, a bounded fan-out with a time budget, retry of transient failures | bulkheads beyond the fan-out's concurrency bound |
 | Layers and overrides | `engineering-profile` | schema v1: packs in `extends`, rules overridden, disabled or added by ID, floor rules (`references/layers.md`) | a personal preference layer above the project |
 | Measurement | `tooling/evals` | fixed cases T1b, T2, T3b, T5, T6 | the full-API case as a benchmark, CI for `verify-examples.sh` |
 

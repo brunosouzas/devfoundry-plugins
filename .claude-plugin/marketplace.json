@@ -29,7 +29,7 @@
     },
     {
       "name": "resilience-patterns",
-      "description": "Decides whether code that calls another system needs a resilience pattern (starting with the Circuit Breaker) against a slow or failing dependency, with verified Mule 4 realizations.",
+      "description": "Decides whether code that calls another system needs a resilience pattern (Circuit Breaker, session renewal, a bounded fan-out with a time budget, retry of transient failures) against a slow or failing dependency, with verified Mule 4 realizations.",
       "author": {
         "name": "Bruno Souza"
       },

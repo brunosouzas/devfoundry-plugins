@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:munit="http://www.mulesoft.org/schema/mule/munit"
+      xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:os="http://www.mulesoft.org/schema/mule/os"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+        http://www.mulesoft.org/schema/mule/munit-tools http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+
+  <!-- The carrier is mocked by doc:name: "Log in to carrier", "Search carrier shipments", "Get carrier shipment".
+       Time is never waited for: the budget is tested with a deadline already in the past. -->
+  <munit:config name="shipments-test-suite.xml"/>
+
+  <http:request-config name="test-client-config">
+    <http:request-connection host="localhost" port="${http.port}"/>
+  </http:request-config>
+
+  <!-- A stub of the carrier's search, on carrier.port (a free port, dynamicPorts in pom.xml). It answers 401 to the
+       old session and two ids to any other, so the renewal test goes through a real HTTP 401 and the request's own
+       error-mapping. A mock cannot do this: its answer does not depend on the request, and an error raised in a
+       then-call flow reaches the caller as MULE:UNKNOWN. -->
+  <http:listener-config name="test-carrier-stub-config">
+    <http:listener-connection host="0.0.0.0" port="${carrier.port}"/>
+  </http:listener-config>
+
+  <flow name="test-carrier-stub-search">
+    <http:listener config-ref="test-carrier-stub-config" path="/shipments" allowedMethods="GET">
+      <http:response statusCode="#[vars.stubStatus default 200]"/>
+    </http:listener>
+    <choice>
+      <when expression="#[attributes.headers.'x-session' == 'OLD']">
+        <set-variable variableName="stubStatus" value="401"/>
+        <set-payload value='#[output application/json --- { error: "session expired" }]'/>
+      </when>
+      <otherwise>
+        <set-payload value='#[output application/json --- { ids: ["SH-1", "SH-2"] }]'/>
+      </otherwise>
+    </choice>
+  </flow>
+
+  <!-- The happy path through the listener: one login, one search, one read per id, 200. -->
+  <munit:test name="lists-shipments-with-details-gives-200-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="shipments-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: ["SH-1", "SH-2"] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { id: "SH-1", status: "IN_TRANSIT", reference: "REF-1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/shipments">
+        <http:query-params>#[{ date: "2026-11-19" }]</http:query-params>
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(200)]"/>
+      <munit-tools:assert-that expression="#[sizeOf(payload)]" is="#[MunitTools::equalTo(2)]"/>
+      <munit-tools:assert-that expression="#[payload[0].status]" is='#[MunitTools::equalTo("IN_TRANSIT")]'/>
+      <munit-tools:assert-that expression="#[payload[0].carrierReference]" is='#[MunitTools::equalTo("REF-1")]'/>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:verify-call processor="http:request" times="2">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The session is cached: two requests, one login. -->
+  <munit:test name="cached-session-is-reused-test">
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: [] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <flow-ref name="list-shipments"/>
+      <flow-ref name="list-shipments"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:verify-call processor="http:request" times="2">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The test that proves session renewal: a cached session the carrier rejects early is replaced by one new login,
+       and the call is repeated once. -->
+  <munit:test name="rejected-session-is-renewed-once-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="test-carrier-stub-search"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S2" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { id: "SH-1", status: "DELIVERED", reference: "REF-1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <os:store key="carrier-session" objectStore="carrier-session-store">
+        <os:value>OLD</os:value>
+      </os:store>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <flow-ref name="list-shipments"/>
+      <os:retrieve key="carrier-session" objectStore="carrier-session-store" target="cachedSession"/>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[sizeOf(payload)]" is="#[MunitTools::equalTo(2)]"/>
+      <munit-tools:assert-that expression="#[vars.cachedSession]" is='#[MunitTools::equalTo("S2")]'/>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:verify-call processor="http:request" times="2">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- A carrier that rejects the new session too: one renewal, then a defined error. Never a loop of logins. -->
+  <munit:test name="second-rejection-fails-without-a-loop-test">
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:error typeId="HTTP:UNAUTHORIZED"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <try>
+        <flow-ref name="list-shipments"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("CARRIER:SESSION_REJECTED")]'/>
+      <munit-tools:verify-call processor="http:request" times="2">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+      <munit-tools:verify-call processor="http:request" times="2">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The bound: more ids than shipments.maxItems is refused with 422 before any detail call. -->
+  <munit:test name="too-many-results-gives-422-without-detail-calls-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="shipments-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: (1 to (p("shipments.maxItems") as Number) + 1) map ("SH-" ++ $) }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/shipments">
+        <http:query-params>#[{ date: "2026-11-19" }]</http:query-params>
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(422)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("TOO_MANY_RESULTS")]'/>
+      <munit-tools:verify-call processor="http:request" times="0">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The budget: once the deadline has passed, no further call is started and the request ends as 504's error. -->
+  <munit:test name="spent-budget-starts-no-more-calls-test">
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: ["SH-1", "SH-2", "SH-3"] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <set-variable variableName="deadlineMillis" value="#[output application/java --- (now() as Number {unit: 'milliseconds'}) - 1]"/>
+      <try>
+        <flow-ref name="list-shipments"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("APP:BUDGET_EXCEEDED")]'/>
+      <munit-tools:verify-call processor="http:request" times="0">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- Retries: a transient failure is tried maxRetries + 1 times, then the caller gets 503's fixed error. -->
+  <munit:test name="transient-failure-is-retried-then-gives-503-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="shipments-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: ["SH-1"] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:error typeId="HTTP:SERVICE_UNAVAILABLE"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/shipments">
+        <http:query-params>#[{ date: "2026-11-19" }]</http:query-params>
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(503)]"/>
+      <munit-tools:assert-that expression="#[payload.message]" is='#[MunitTools::equalTo("A system behind this API is unavailable")]'/>
+      <munit-tools:verify-call processor="http:request" times="3">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- An answer that will not change (404) is not retried. -->
+  <munit:test name="not-found-is-not-retried-test">
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: ["SH-1"] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:error typeId="HTTP:NOT_FOUND"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <try>
+        <flow-ref name="list-shipments"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("CARRIER:BAD_RESPONSE")]'/>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- The budget holds across retries: a deadline that passes during the delay between two attempts stops the retries.
+       The only real time here is the retry delay (200 ms); the deadline sits 150 ms ahead, so the first attempt runs
+       and the second does not. -->
+  <munit:test name="deadline-stops-the-retries-test">
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: ["SH-1"] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:error typeId="HTTP:SERVICE_UNAVAILABLE"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <set-variable variableName="deadlineMillis" value="#[output application/java --- (now() as Number {unit: 'milliseconds'}) + 150]"/>
+      <try>
+        <flow-ref name="list-shipments"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("APP:BUDGET_EXCEEDED")]'/>
+      <munit-tools:verify-call processor="http:request" times="1">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+
+  <!-- A login that times out is 504, not 500 (mule-app MERR-3). -->
+  <munit:test name="login-timeout-gives-504-test">
+    <munit:enable-flow-sources>
+      <munit:enable-flow-source value="shipments-api-main"/>
+    </munit:enable-flow-sources>
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:error typeId="HTTP:TIMEOUT"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <http:request config-ref="test-client-config" method="GET" path="/api/shipments">
+        <http:query-params>#[{ date: "2026-11-19" }]</http:query-params>
+        <http:response-validator><http:success-status-code-validator values="100..599"/></http:response-validator>
+      </http:request>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[attributes.statusCode]" is="#[MunitTools::equalTo(504)]"/>
+      <munit-tools:assert-that expression="#[payload.code]" is='#[MunitTools::equalTo("UPSTREAM_TIMEOUT")]'/>
+    </munit:validation>
+  </munit:test>
+
+  <!-- A call that keeps timing out ends, after its retries, as the carrier timeout (504), not as unavailable (503). -->
+  <munit:test name="exhausted-timeout-gives-carrier-timeout-test">
+    <munit:behavior>
+      <os:clear objectStore="carrier-session-store"/>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Log in to carrier"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { sessionId: "S1" }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Search carrier shipments"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:payload value='#[output application/json --- { ids: ["SH-1"] }]' mediaType="application/json"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+      <munit-tools:mock-when processor="http:request">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+        <munit-tools:then-return><munit-tools:error typeId="HTTP:TIMEOUT"/></munit-tools:then-return>
+      </munit-tools:mock-when>
+    </munit:behavior>
+    <munit:execution>
+      <set-variable variableName="shipmentDate" value="2026-11-19"/>
+      <try>
+        <flow-ref name="list-shipments"/>
+        <error-handler>
+          <on-error-continue>
+            <set-variable variableName="lastError" value="#[error.errorType.namespace ++ ':' ++ error.errorType.identifier]"/>
+          </on-error-continue>
+        </error-handler>
+      </try>
+    </munit:execution>
+    <munit:validation>
+      <munit-tools:assert-that expression="#[vars.lastError]" is='#[MunitTools::equalTo("CARRIER:TIMEOUT")]'/>
+      <munit-tools:verify-call processor="http:request" times="3">
+        <munit-tools:with-attributes><munit-tools:with-attribute attributeName="doc:name" whereValue="Get carrier shipment"/></munit-tools:with-attributes>
+      </munit-tools:verify-call>
+    </munit:validation>
+  </munit:test>
+</mule>
