@@ -5,6 +5,7 @@ YAML (PyYAML, GitHub's renderer, other hosts) rejects it. Quote such values.
 Usage: python3 check-skill-frontmatter.py [repo root]
 """
 import pathlib
+import re
 import sys
 
 import yaml
@@ -12,14 +13,14 @@ import yaml
 root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else ".")
 failed = 0
 for path in sorted(root.glob("plugins/*/skills/*/SKILL.md")):
-    text = path.read_text(encoding="utf-8")
-    parts = text.split("\n---", 1)
-    if not text.startswith("---\n") or len(parts) < 2:
+    text = path.read_text(encoding="utf-8-sig")
+    match = re.match(r"\A---\n(.*?)\n---[ \t]*(\n|\Z)", text, re.S)
+    if not match:
         print(f"FAIL {path}: no frontmatter")
         failed += 1
         continue
     try:
-        data = yaml.safe_load(parts[0][4:])
+        data = yaml.safe_load(match.group(1))
         if not isinstance(data, dict) or not data.get("name") or not isinstance(data.get("description"), str):
             raise ValueError("name and description are required")
     except Exception as exc:  # noqa: BLE001 - report every file

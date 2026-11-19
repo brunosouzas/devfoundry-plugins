@@ -13,7 +13,7 @@ Claude Code plugins for MuleSoft and API engineering. This file is for agents wo
 ## Rules for changing a skill
 
 - **Names are fixed slugs.** Plugin and skill names are technical and carry no brand. A plugin `name` never changes once published.
-- **The description is the trigger.** Write the when-to-use cases there, with concrete wording, and a "Do NOT use" clause for the near misses. The body is the procedure; keep it under 500 lines. Frontmatter must be strict YAML: quote a description that contains ": " (`tooling/ci/check-skill-frontmatter.py` checks it).
+- **The description is the trigger.** Write the when-to-use cases there, with concrete wording, and a "Do NOT use" clause for the near misses. The body is the procedure; keep it under 500 lines. Frontmatter must be strict YAML: quote a description that contains ": " or " #" (`tooling/ci/check-skill-frontmatter.py` checks it).
 - **References are split.** A pattern has a platform-neutral `references/<pattern>.md` (the why, when and when NOT to use it, failures, limits, the test) and one realization per platform, `references/<platform>/<pattern>.md`. Refer to skill files as `${CLAUDE_SKILL_DIR}/...`.
 - **Every code example is a verified project**, in `assets/<platform>/<pattern>/`. It builds and its tests pass (`scripts/verify-examples.sh`), and its key test fails when the pattern is removed (a mutation check). No code snippet goes into a reference without a project that proves it. Pitfalls the build caught go into the realization.
 - **A new pattern** comes with its neutral reference, its realization, its verified example, a catalog row in `SKILL.md`, and two fixed cases in `tooling/evals/cases/`: one where the pattern is needed and one where it is not.
