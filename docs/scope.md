@@ -1,16 +1,16 @@
 # Scope
 
-What devFoundry is, what it is not, and the order of the next pieces. Agreed with the maintainer on 2026-11-18. A change to this scope is a pull request to this file.
+What Mulesmith is, what it is not, and what is left. Agreed with the maintainer on 2026-11-18. A change to this scope is a pull request to this file.
 
 ## The idea in one paragraph
 
-devFoundry is a public set of **skills**, packaged as Claude Code plugins. The skills are reusable by anyone: each one says what to do, holds the rules, and backs its code with examples that build and pass their tests. People and companies put their **own rules and agents** on top, in their own private layer, without editing the public skills. The first domain is MuleSoft: API-first implementation (contract, code, unit tests), API design, and integration patterns.
+Mulesmith is a public set of **skills**, packaged as Claude Code plugins, for **MuleSoft only**. The skills are reusable by anyone: each one says what to do, holds the rules, and backs its code with examples that build and pass their tests. People and companies put their **own rules and agents** on top, in their own private layer, without editing the public skills. It covers: API-first implementation (contract, code, unit tests), API design, and integration patterns.
 
 ## Three layers
 
 | Layer | Where it lives | What it holds |
 | --- | --- | --- |
-| **Public** | this repository, `devfoundry-plugins` | Skills and their verified examples: the public practices MuleSoft itself publishes (API-first, API-led), API contracts, Mule code, MUnit, API design, integration and resilience patterns. The profile mechanism that lets the other layers override rules. |
+| **Public** | this repository, `mulesmith` | Skills and their verified examples: the public practices MuleSoft itself publishes (API-first, API-led), API contracts, Mule code, MUnit, API design, integration and resilience patterns. The profile mechanism that lets the other layers override rules. |
 | **Personal** | the maintainer's own kit or a private repository | His agents (developer, reviewer), his MuleSoft rules as a rules pack, his own end-to-end process: spec-driven development, design reviews, approvals and delivery. |
 | **Company** | the company's private repository or marketplace | The company's agents, process and corporate rules (logger, error handler, project template, approved modules), named by the project's `engineering/profile.yaml`. |
 
@@ -25,15 +25,15 @@ The public layer never holds personal or company material, and never client data
 
 ## Repository
 
-- One monorepo for every devFoundry skill that becomes a plugin: one plugin per domain, technical names with no brand (`api-contracts`, `mule-engineering`).
-- Platform-neutral skills (`integration-patterns`, `resilience-patterns`, `api-contracts`) keep the platform in a subfolder (`references/mule4/`, `assets/mule4/`). Another stack adds its own subfolder, or its own plugin, in this repository.
-- MuleSoft first. Other domains join only after the MuleSoft set is complete and measured.
+- One monorepo for every mulesmith skill that becomes a plugin: one plugin per domain, technical names with no brand (`api-contracts`, `mule-engineering`).
+- Platform-neutral skills (`integration-patterns`, `resilience-patterns`, `api-contracts`) keep the platform in a subfolder (`references/mule4/`, `assets/mule4/`).
+- MuleSoft only. Other languages do not join this repository: they go to a separate public repository, `devfoundry`, which promises **rules only** (rules with IDs and no verified examples, no profile and no measurement). Mulesmith keeps the profile mechanism, the verified examples and the measurement.
 
-## In scope (MuleSoft first)
+## In scope (MuleSoft only)
 
 | Area | Plugin | Today | Missing |
 | --- | --- | --- | --- |
-| API-first implementation | `api-first` | `api-first-implementation`: reuse first, requirements inventory, contract first, tests traced to requirements, final check (AFI-1 to AFI-6) | measured on the full-API case |
+| API-first implementation | `api-first` | `api-first-implementation`: reuse first, requirements inventory, contract first, tests traced to requirements, final check (AFI-1 to AFI-6) | nothing open: measured on the full-API case (TAPI, `tooling/evals`) |
 | API contract (spec) | `api-contracts` | contract first, RES, CON, APISEC | spec validation with real tooling |
 | Mule code | `mule-engineering` | `mule-app` (flows, layout, properties, errors, logs, build), `dataweave`, `apikit`, `mule-sdk` (shared assets) | deploy and platform configuration stays out (delivery); naming conventions stay in profiles and private packs |
 | Unit tests | `mule-engineering` | `munit` (endpoints through HTTP, mocks, error paths) | small gaps only |
@@ -50,20 +50,16 @@ The public layer never holds personal or company material, and never client data
 - **Company rules packs and client material.** They live in private repositories.
 - **Hosts other than Claude Code.** No other host for now.
 
-## Next pieces, in order
+## Done
 
-1. **Layers and overrides.** Extend the profile beyond naming:
-   - a precedence order (public < company < project < preference). Done in schema v1 for public < packs < project; a personal pack sits in `extends` below the project, and a preference layer above the project is left for later;
-   - a rules pack that adds or overrides public rules by ID, kept in a private repository the profile names;
-   - a report when a company rule conflicts with a public rule, instead of a silent override.
+The pieces planned on 2026-11-18 are all in place: layers and overrides (`engineering-profile`, schema v1), `api-first`, the rest of `mule-engineering`, and API design as rules in `api-contracts`. The full-API case (TAPI) measured the public layer before private layers were put on top.
 
-   Without this, every new rule ends up in the public layer for lack of another place.
-2. **API-first implementation.** The ordered flow and the final requirements check (`api-first`).
-3. **The rest of `mule-engineering`.** Port the remaining Mule and DataWeave rules, with verified examples. A backend timeout that reaches the caller as 408 is one of the gaps this closes.
-4. **API design**, as rules, not architecture: the API-led layers and the limits a contract states, in `api-contracts`. A team's design process (spec-driven development, design reviews) calls them; it is not in the public layer.
+## Open items
 
-After steps 1 and 2: measure again with the full-API case (1 run per arm), so the public layer is shown to work before private layers are put on top.
+- The rest of the integration-pattern catalog (see the `integration-patterns` row above), one pattern at a time, when a real project needs it.
+- Spec validation with Anypoint Governance, only if it runs without an Anypoint login.
+- A personal preference layer above the project profile.
 
-## Open decision
+## Where the rest went
 
-The maintainer's existing `mulesoft` and `api` skill families (brunosouzas/agent-skills) overlap with this repository. Each rule there goes one of two ways: into the public layer here, or into his personal rules pack. The old repositories are deleted once that split is done.
+The maintainer's earlier `mulesoft` and `api` skill families (brunosouzas/agent-skills) were split: the public MuleSoft rules are here, and his personal rules moved to a private pack. Skills for other languages go to `devfoundry`, a separate public repository (rules only).

@@ -1,12 +1,12 @@
 # Engineering profile — schema v1
 
-A project's conventions live in `engineering/profile.yaml`. Skills read them from there and never hold the values themselves. This is not a Claude Code standard: it is a devFoundry convention. `scripts/resolve-profile.py` of the `project-profile` skill validates a profile and prints the rules in effect.
+A project's conventions live in `engineering/profile.yaml`. Skills read them from there and never hold the values themselves. This is not a Claude Code standard: it is a mulesmith convention. `scripts/resolve-profile.py` of the `project-profile` skill validates a profile and prints the rules in effect.
 
 ## Layers
 
 Rules come in layers. When two layers set the same thing, the higher one wins:
 
-1. **Public:** the rules inside the devFoundry skills (`rules.md` of each skill, cited by ID: `CON-2`, `MUNIT-5`).
+1. **Public:** the rules inside the mulesmith skills (`rules.md` of each skill, cited by ID: `CON-2`, `MUNIT-5`).
 2. **Packs:** the profiles listed in `extends`, in order. A company pack, a personal pack. Each pack overrides the ones before it.
 3. **Project:** `engineering/profile.yaml` itself.
 
@@ -17,7 +17,7 @@ Nothing is overridden silently. Every rule that a pack or the project changes is
 ## Profile
 
 ```yaml
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: EngineeringProfile
 name: <profile name>
 extends:                        # packs, lowest precedence first; each entry is a folder that holds pack.yaml
@@ -58,7 +58,7 @@ mulesoft:
 ## Pack
 
 ```yaml
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: RulesPack
 name: <pack name>
 version: <semver>

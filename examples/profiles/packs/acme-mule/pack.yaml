@@ -1,7 +1,7 @@
 # Synthetic company pack (fictitious company ACME), for documentation and the eval cases only.
 # A real company pack lives in the company's private repository and comes into a project as
 # engineering/packs/<name>/ (git submodule or a pinned copy).
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: RulesPack
 name: acme-mule
 version: 1.0.0

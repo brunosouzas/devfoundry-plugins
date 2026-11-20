@@ -8,7 +8,7 @@
 The merge rules are in ../references/layers.md. Usage:
   resolve-profile.py [project dir] [--rules-root DIR]... [--json] [--emit-profile] [--strict]
   project dir     the project root that holds engineering/profile.yaml (default: .)
-  --rules-root    a folder searched for rules.md files with the public rules; repeatable. Default: every devFoundry
+  --rules-root    a folder searched for rules.md files with the public rules; repeatable. Default: every mulesmith
                   plugin next to this one (the repository's plugins/ folder, or the latest installed version of each
                   plugin of the same marketplace)
   --json          print the result as JSON instead of the report
@@ -32,7 +32,7 @@ NEW_ID = re.compile(rf"^{ID}$")
 CLASSES = ("auto", "propose", "ask")
 CLASS_LINE = re.compile(r"^\s+Class:\s*`?(\w+)`?\s*$")
 DEFAULT_CLASS = "auto"
-VERSIONS = {"engineering.poc/v0", "devfoundry/v1"}
+VERSIONS = {"engineering.poc/v0", "mulesmith/v1"}
 MULE_SECTIONS = ("naming", "precedence", "components")
 
 
@@ -148,7 +148,7 @@ def resolve(project, roots):
     if profile is None:
         return {"errors": errors}
     if profile.get("apiVersion") == "engineering.poc/v0" and ("extends" in profile or "rules" in profile):
-        errors.append(f"{profile_path}: extends and rules need apiVersion devfoundry/v1")
+        errors.append(f"{profile_path}: extends and rules need apiVersion mulesmith/v1")
 
     layers, seen_packs = [], set()
     extends = profile.get("extends") or []

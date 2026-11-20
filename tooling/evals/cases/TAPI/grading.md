@@ -43,7 +43,7 @@ Each item PASS or FAIL with evidence. 15 items.
 
 ## Calibration (2026-11-19, Opus 5.5, one run per arm)
 
-Baseline 13/15 (D2 and F1 failed), devFoundry 15/15; both build. Both missed a new login when WRS ends a session early. The case is solvable and separates the arms on the integration decisions (D2) and the profile's names (F1).
+Baseline 13/15 (D2 and F1 failed), mulesmith (then named devFoundry) 15/15; both build. Both missed a new login when WRS ends a session early. The case is solvable and separates the arms on the integration decisions (D2) and the profile's names (F1).
 
 ## Notes
 

@@ -33,7 +33,7 @@ class Resolve(unittest.TestCase):
 
     def pack(self, name, body):
         self.write(f"engineering/packs/{name}/pack.yaml",
-                   f"apiVersion: devfoundry/v1\nkind: RulesPack\nname: {name}\nversion: 1.0.0\nlayer: company\n" + textwrap.dedent(body))
+                   f"apiVersion: mulesmith/v1\nkind: RulesPack\nname: {name}\nversion: 1.0.0\nlayer: company\n" + textwrap.dedent(body))
 
     def run_(self):
         return rp.resolve(self.project, [self.tmp / "rules"])
@@ -52,12 +52,12 @@ class Resolve(unittest.TestCase):
 
     def test_v0_with_rules_is_an_error(self):
         self.write("engineering/profile.yaml", "apiVersion: engineering.poc/v0\nkind: EngineeringProfile\nrules: {}\n")
-        self.assertTrue(any("need apiVersion devfoundry/v1" in e for e in self.run_()["errors"]))
+        self.assertTrue(any("need apiVersion mulesmith/v1" in e for e in self.run_()["errors"]))
 
     def test_pack_then_project_naming_precedence(self):
         self.pack("acme", "mulesoft:\n  naming: {flow: 'acme-{resource}-{operation}', variable: snake_case}\n")
         self.write("engineering/profile.yaml", """\
-            apiVersion: devfoundry/v1
+            apiVersion: mulesmith/v1
             kind: EngineeringProfile
             extends: [engineering/packs/acme]
             mulesoft:
@@ -77,7 +77,7 @@ class Resolve(unittest.TestCase):
                 - {id: ACME-LOG-1, text: "Log entry and exit", why: "audit", check: "logger in each flow"}
             """)
         self.write("engineering/profile.yaml", """\
-            apiVersion: devfoundry/v1
+            apiVersion: mulesmith/v1
             kind: EngineeringProfile
             extends: [engineering/packs/acme]
             rules:
@@ -94,7 +94,7 @@ class Resolve(unittest.TestCase):
     def test_floor_rule_is_refused_not_applied(self):
         self.pack("acme", "rules:\n  disable: {FLOOR-2: 'keys in config.yaml are simpler'}\n")
         self.pack("team", "rules:\n  override: {FLOOR-2: 'anything'}\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme, engineering/packs/team]\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme, engineering/packs/team]\n")
         res = self.run_()
         self.assertEqual(res["errors"], [])
         self.assertEqual({r["action"] for r in res["refused"]}, {"disable", "override"})
@@ -104,7 +104,7 @@ class Resolve(unittest.TestCase):
 
     def test_errors(self):
         self.pack("acme", "rules:\n  add: [{id: CON-2, text: t, why: w, check: c}, {id: bad, text: t}]\n  disable: {NOPE-1: x, MUNIT-3: ''}\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme, engineering/packs/missing]\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme, engineering/packs/missing]\n")
         errs = " | ".join(self.run_()["errors"])
         for needle in ("add CON-2 exists already", "add id 'bad'", "disable NOPE-1: no such rule",
                        "disable MUNIT-3 needs a reason", "packs/missing: no pack.yaml"):
@@ -113,14 +113,14 @@ class Resolve(unittest.TestCase):
     def test_later_pack_reenables_a_disabled_rule(self):
         self.pack("a", "rules:\n  disable: {CON-2: 'old'}\n")
         self.pack("b", "rules:\n  override: {CON-2: 'Errors use the ACME error type'}\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/a, engineering/packs/b]\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: [engineering/packs/a, engineering/packs/b]\n")
         res = self.run_()
         self.assertEqual(res["rules"]["CON-2"]["status"], "active")
         self.assertEqual(res["rules"]["CON-2"]["layer"], "pack b@1.0.0")
 
     def test_cli_exit_codes(self):
         self.pack("acme", "rules:\n  disable: {FLOOR-2: 'x'}\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme]\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme]\n")
         args = [str(self.project), "--rules-root", str(self.tmp / "rules")]
         self.assertEqual(rp.main(args), 0)
         self.assertEqual(rp.main(args + ["--strict"]), 1)
@@ -128,24 +128,24 @@ class Resolve(unittest.TestCase):
 
     def test_malformed_sections_are_errors_not_crashes(self):
         self.pack("acme", "rules:\n  disable: [CON-2]\n  add: {id: X-1}\nmulesoft: x\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: engineering/packs/acme\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: engineering/packs/acme\n")
         errs = " | ".join(self.run_()["errors"])
         self.assertIn("extends must be a list", errs)
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme]\nrules:\n  override: {CON-2: [a]}\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: [engineering/packs/acme]\nrules:\n  override: {CON-2: [a]}\n")
         errs = " | ".join(self.run_()["errors"])
         for needle in ("rules.disable must be a mapping", "rules.add must be a list", "mulesoft must be a mapping",
                        "override CON-2 needs the rule's text"):
             self.assertIn(needle, errs)
 
     def test_one_change_per_rule_per_layer(self):
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n  override: {CON-2: x}\n  disable: {CON-2: y}\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nrules:\n  override: {CON-2: x}\n  disable: {CON-2: y}\n")
         self.assertIn("CON-2 appears in override and disable", " | ".join(self.run_()["errors"]))
 
     def test_pack_rules_on_paths_kind_and_duplicates(self):
         self.pack("acme", "rules:\n  add: [{id: CON-99, text: t, why: w, check: c}]\n")
-        self.write("engineering/packs/wrong/pack.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n  disable: {CON-2: evil}\n")
+        self.write("engineering/packs/wrong/pack.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nrules:\n  disable: {CON-2: evil}\n")
         (self.tmp / "outside").mkdir()
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\n"
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\n"
                    "extends: [engineering/packs/acme, engineering/packs/acme, engineering/packs/wrong, ../outside]\n")
         res = self.run_()
         errs = " | ".join(res["errors"])
@@ -155,14 +155,14 @@ class Resolve(unittest.TestCase):
 
     def test_emit_profile_prints_nothing_on_errors(self):
         import io, contextlib
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n  disable: {NOPE-1: x}\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nrules:\n  disable: {NOPE-1: x}\n")
         out = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
             code = rp.main([str(self.project), "--rules-root", str(self.tmp / "rules"), "--emit-profile"])
         self.assertEqual((code, out.getvalue()), (1, ""))
 
     def test_installed_layout_finds_sibling_plugins(self):
-        cache = self.tmp / "cache/devfoundry"
+        cache = self.tmp / "cache/mulesmith"
         for plugin, versions in (("engineering-profile", ("old", "new")), ("api-contracts", ("v1",))):
             for v in versions:
                 d = cache / plugin / v
@@ -187,14 +187,14 @@ class Resolve(unittest.TestCase):
 
 
     def test_classes_are_read_and_default_to_auto(self):
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\n")
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\n")
         rules = self.run_()["rules"]
         self.assertEqual((rules["CON-2"]["class"], rules["CON-4"]["class"], rules["MUNIT-3"]["class"]), ("auto", "ask", "auto"))
 
     def test_override_class_only_keeps_text_and_is_reported(self):
         self.pack("acme", "rules:\n  override: {CON-2: {class: propose}}\n")
         self.write("engineering/profile.yaml", """\
-            apiVersion: devfoundry/v1
+            apiVersion: mulesmith/v1
             kind: EngineeringProfile
             extends: [engineering/packs/acme]
             rules:
@@ -212,7 +212,7 @@ class Resolve(unittest.TestCase):
         self.assertIn("Rules of class propose: CON-2", report)
 
     def test_bad_class_is_an_error_and_floor_class_is_refused(self):
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nrules:\n"
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nrules:\n"
                    "  override: {CON-2: {class: maybe}, FLOOR-2: {class: ask}, MUNIT-3: {why: x}}\n"
                    "  add: [{id: ACME-1, text: t, why: w, check: c, class: later}]\n")
         res = self.run_()
@@ -245,7 +245,7 @@ class Resolve(unittest.TestCase):
 
     def test_override_noop_null_class_and_reenable(self):
         self.pack("a", "rules:\n  disable: {CON-2: 'old'}\n")
-        self.write("engineering/profile.yaml", "apiVersion: devfoundry/v1\nkind: EngineeringProfile\nextends: [engineering/packs/a]\nrules:\n"
+        self.write("engineering/profile.yaml", "apiVersion: mulesmith/v1\nkind: EngineeringProfile\nextends: [engineering/packs/a]\nrules:\n"
                    "  override: {CON-2: {class: propose}, CON-4: {class: ask}}\n"
                    "  add: [{id: ACME-1, text: t, why: w, check: c, class: null}]\n")
         res = self.run_()

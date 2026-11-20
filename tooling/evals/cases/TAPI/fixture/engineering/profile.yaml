@@ -1,5 +1,5 @@
 # Engineering profile of the wrs-jobs-sys API (synthetic benchmark).
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: EngineeringProfile
 name: wrs-jobs-sys
 mulesoft:
