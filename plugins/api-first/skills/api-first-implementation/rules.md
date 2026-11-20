@@ -1,6 +1,6 @@
 # API-first implementation: rules
 
-Rules for implementing an API change from its requirements. New in devFoundry. A team's own process may add to them or override them through its rules pack (`project-profile`, `references/layers.md`).
+Rules for implementing an API change from its requirements. New in mulesmith. A team's own process may add to them or override them through its rules pack (`project-profile`, `references/layers.md`).
 
 How to change this file: add a rule with the next number; edit a rule in place and keep its ID; retire a rule by keeping its ID with `(retired in <version>: <reason>)`, never reusing the number.
 

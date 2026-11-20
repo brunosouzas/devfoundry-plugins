@@ -3,8 +3,8 @@
   "version": "1.0.1",
   "description": "API-first implementation, the public practice: what exists reused first, requirements inventoried and numbered, contract before code, code and tests that trace back to each requirement, and a final check of every requirement. Calls the contract, profile, pattern and platform skills at each step; takes its requirements from whatever spec the team's own process produced.",
   "author": { "name": "Bruno Souza", "url": "https://github.com/brunosouzas" },
-  "homepage": "https://github.com/brunosouzas/devfoundry-plugins",
-  "repository": "https://github.com/brunosouzas/devfoundry-plugins",
+  "homepage": "https://github.com/brunosouzas/mulesmith",
+  "repository": "https://github.com/brunosouzas/mulesmith",
   "license": "MIT",
   "keywords": ["api-first", "requirements", "traceability", "mulesoft", "mule4", "implementation"]
 }

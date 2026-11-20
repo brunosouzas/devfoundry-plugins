@@ -1,10 +1,10 @@
 # Layers: how a profile and its packs merge
 
-The owner of the merge rules. `docs/profile-schema.md` in the devFoundry repository describes the file formats and points here; `scripts/resolve-profile.py` implements these rules.
+The owner of the merge rules. `docs/profile-schema.md` in the mulesmith repository describes the file formats and points here; `scripts/resolve-profile.py` implements these rules.
 
 ## Order
 
-1. **Public:** the rules in the `rules.md` of every devFoundry skill, cited by ID (`CON-2`, `MUNIT-5`, `FLOOR-1`).
+1. **Public:** the rules in the `rules.md` of every mulesmith skill, cited by ID (`CON-2`, `MUNIT-5`, `FLOOR-1`).
 2. **Packs:** each folder in the profile's `extends`, in the order listed. A later pack wins over an earlier one.
 3. **Project:** `engineering/profile.yaml` itself wins over every pack.
 

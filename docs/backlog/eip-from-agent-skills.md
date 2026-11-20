@@ -1,6 +1,6 @@
 # Backlog: the EIP rules of brunosouzas/agent-skills
 
-Copied whole from `plugins/mulesoft/skills/mulesoft/references/eip.md` of brunosouzas/agent-skills (same author), before its `mulesoft` plugin is retired. Not a devFoundry skill: the source for the patterns `integration-patterns` does not have yet (Dead Letter Channel, Correlation Identifier, Publish-Subscribe Channel, and the general rules EIP-1 to EIP-8). Idempotent Receiver and Circuit Breaker are already patterns here (`integration-patterns`, `resilience-patterns`). A pattern ported from here follows AGENTS.md: a neutral reference, a realization, a verified example and its two fixed cases.
+Copied whole from `plugins/mulesoft/skills/mulesoft/references/eip.md` of brunosouzas/agent-skills (same author), before its `mulesoft` plugin is retired. Not a mulesmith skill: the source for the patterns `integration-patterns` does not have yet (Dead Letter Channel, Correlation Identifier, Publish-Subscribe Channel, and the general rules EIP-1 to EIP-8). Idempotent Receiver and Circuit Breaker are already patterns here (`integration-patterns`, `resilience-patterns`). A pattern ported from here follows AGENTS.md: a neutral reference, a realization, a verified example and its two fixed cases.
 
 ---
 

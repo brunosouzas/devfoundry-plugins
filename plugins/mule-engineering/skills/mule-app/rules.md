@@ -5,7 +5,7 @@ Rules for Mule 4 applications: flows, layout, configuration, errors, logging and
 Not here on purpose:
 - **Names.** The project profile (`engineering/profile.yaml`, `project-profile` skill) owns the names of flows, files and variables, and the project's own conventions come next. These rules only ask that a name says what the thing does (FLOW-2) and that a new project picks one convention and keeps it. The naming rules of the `mulesoft` skill (FLOW-5, FLOW-6) are not ported.
 - **Rules other skills own.** The APIkit router (APIKIT, `apikit`), tests (MUNIT, `munit`), DataWeave (DW, `dataweave`), the API contract (`api-contract`), secrets (FLOOR-2) and synthetic data (FLOOR-1) of `project-profile`. FLOW-1 and PLAT-2 of the `mulesoft` skill are APIKIT-3 and APIKIT-1 here; CFG-2 is FLOOR-2.
-- **Deploy and platform.** CloudHub 2.0 deployment configuration, API Manager policies and health checks for the deploy belong to the delivery process, which is outside devFoundry.
+- **Deploy and platform.** CloudHub 2.0 deployment configuration, API Manager policies and health checks for the deploy belong to the delivery process, which is outside mulesmith.
 
 Changed on purpose from the source, each to fit a public skill under a profile:
 - FLOW-3 keeps the rule (one definition, referenced by name) and drops its display-name pattern (`<Purpose> <Type> Config`), which is naming.

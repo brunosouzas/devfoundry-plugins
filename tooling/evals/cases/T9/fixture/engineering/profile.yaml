@@ -1,4 +1,4 @@
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: EngineeringProfile
 name: catalog-team
 extends:

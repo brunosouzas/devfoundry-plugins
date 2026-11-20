@@ -1,6 +1,8 @@
-# devFoundry plugins
+# Mulesmith
 
-Claude Code plugins for MuleSoft and API engineering. They make an agent think about integration problems before it writes code: it checks whether a flow needs a pattern, applies it only when the problem is present, starts each endpoint from a spec that describes it, tests it through HTTP, and follows the project's own conventions.
+Claude Code plugins for MuleSoft: Mule 4 and the APIs around it. This repository is MuleSoft only; rules for other languages live in a separate public repository, `devfoundry`. They make an agent think about integration problems before it writes code: it checks whether a flow needs a pattern, applies it only when the problem is present, starts each endpoint from a spec that describes it, tests it through HTTP, and follows the project's own conventions.
+
+Mulesmith is not affiliated with MuleSoft or Salesforce. MuleSoft and Mule are trademarks of Salesforce.
 
 | Plugin | What it does |
 | --- | --- |
@@ -24,28 +26,28 @@ Each pattern has a platform-neutral reference and a Mule 4 realization backed by
 
 ## Install
 
-The marketplace is named `devfoundry`. Add it once, then install the plugins you want. Most Mule API work uses all six: `api-first` calls the others at each step.
+The marketplace is named `mulesmith`. Add it once, then install the plugins you want. Most Mule API work uses all six: `api-first` calls the others at each step.
 
 ### Claude Code, in the terminal
 
 In a Claude Code session (each `/plugin install` opens the plugin's panel, where you pick the scope and confirm):
 
 ```
-/plugin marketplace add brunosouzas/devfoundry-plugins
-/plugin install api-first@devfoundry
-/plugin install integration-patterns@devfoundry
-/plugin install resilience-patterns@devfoundry
-/plugin install engineering-profile@devfoundry
-/plugin install api-contracts@devfoundry
-/plugin install mule-engineering@devfoundry
+/plugin marketplace add brunosouzas/mulesmith
+/plugin install api-first@mulesmith
+/plugin install integration-patterns@mulesmith
+/plugin install resilience-patterns@mulesmith
+/plugin install engineering-profile@mulesmith
+/plugin install api-contracts@mulesmith
+/plugin install mule-engineering@mulesmith
 ```
 
 Or from a shell, with a scope (`user` for every project, `project` to record it in this repository's settings, `local` for this repository only on your machine):
 
 ```bash
-claude plugin marketplace add brunosouzas/devfoundry-plugins
+claude plugin marketplace add brunosouzas/mulesmith
 for p in api-first integration-patterns resilience-patterns engineering-profile api-contracts mule-engineering; do
-  claude plugin install "$p@devfoundry" --scope user
+  claude plugin install "$p@mulesmith" --scope user
 done
 ```
 
@@ -55,19 +57,19 @@ A plugin installed from a shell loads the next time Claude Code starts, or after
 
 The desktop app's Code tab, the terminal and the VS Code extension read the same settings on one computer, so a plugin installed at user scope in one is there in the others.
 
-1. Add the marketplace once from a terminal: `claude plugin marketplace add brunosouzas/devfoundry-plugins`.
-2. Click **+** next to the prompt box, then **Add plugins** (or **Plugins > Browse plugins**), pick a devFoundry plugin and its scope.
+1. Add the marketplace once from a terminal: `claude plugin marketplace add brunosouzas/mulesmith`.
+2. Click **+** next to the prompt box, then **Add plugins** (or **Plugins > Browse plugins**), pick a mulesmith plugin and its scope.
 3. **Plugins > Manage plugins** enables, disables or uninstalls them.
 
 Cloud sessions of the desktop app do not get these plugins.
 
 ### VS Code
 
-Type `/plugins` in the Claude Code panel to open **Manage plugins**, add `brunosouzas/devfoundry-plugins` on its **Marketplaces** tab, then install each plugin with a scope.
+Type `/plugins` in the Claude Code panel to open **Manage plugins**, add `brunosouzas/mulesmith` on its **Marketplaces** tab, then install each plugin with a scope.
 
 ### claude.ai and Cowork
 
-On a paid plan, **Customize > Plugins > Add > Add marketplace**, then `brunosouzas/devfoundry-plugins`. Cowork takes its plugins from the same claude.ai account.
+On a paid plan, **Customize > Plugins > Add > Add marketplace**, then `brunosouzas/mulesmith`. Cowork takes its plugins from the same claude.ai account.
 
 - **In chat** the skills guide the answer, but chat cannot open your project or run its build.
 - **In Cowork** we have not tried a Mule build.
@@ -81,30 +83,30 @@ A project can offer the plugins to everyone who opens it. Add to its `.claude/se
 ```json
 {
   "extraKnownMarketplaces": {
-    "devfoundry": {
-      "source": { "source": "github", "repo": "brunosouzas/devfoundry-plugins" }
+    "mulesmith": {
+      "source": { "source": "github", "repo": "brunosouzas/mulesmith" }
     }
   },
   "enabledPlugins": {
-    "api-first@devfoundry": true,
-    "integration-patterns@devfoundry": true,
-    "resilience-patterns@devfoundry": true,
-    "engineering-profile@devfoundry": true,
-    "api-contracts@devfoundry": true,
-    "mule-engineering@devfoundry": true
+    "api-first@mulesmith": true,
+    "integration-patterns@mulesmith": true,
+    "resilience-patterns@mulesmith": true,
+    "engineering-profile@mulesmith": true,
+    "api-contracts@mulesmith": true,
+    "mule-engineering@mulesmith": true
   }
 }
 ```
 
-Claude Code registers the marketplace when a contributor trusts the folder. Each contributor still installs the plugins once per clone (`claude plugin install <plugin>@devfoundry --scope project`). To install them for everyone without that step, an organisation uses its managed settings, which take the same two keys.
+Claude Code registers the marketplace when a contributor trusts the folder. Each contributor still installs the plugins once per clone (`claude plugin install <plugin>@mulesmith --scope project`). To install them for everyone without that step, an organisation uses its managed settings, which take the same two keys.
 
 ### Update and remove
 
 ```bash
-claude plugin marketplace update devfoundry                 # read the latest versions
-claude plugin update mule-engineering@devfoundry            # then restart, or /reload-plugins
-claude plugin uninstall mule-engineering@devfoundry         # add --scope project if it was installed that way
-claude plugin marketplace remove devfoundry                 # removes the marketplace and all its plugins
+claude plugin marketplace update mulesmith                 # read the latest versions
+claude plugin update mule-engineering@mulesmith            # then restart, or /reload-plugins
+claude plugin uninstall mule-engineering@mulesmith         # add --scope project if it was installed that way
+claude plugin marketplace remove mulesmith                 # removes the marketplace and all its plugins
 ```
 
 Auto-update is off by default for a marketplace like this one; turn it on in `/plugin` > **Marketplaces**. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
@@ -135,13 +137,13 @@ Smaller asks work too: "review this flow", "this API hangs when the scoring serv
 
 ## Your own layer: rules, agents and process
 
-devFoundry is the public layer: skills that hold practices, each rule with an ID (`MERR-3`, `MUNIT-5`, `CON-2`), and examples that build. What is yours, or your company's, goes in a **private layer on top**, without forking or editing a public skill:
+Mulesmith is the public layer: skills that hold practices, each rule with an ID (`MERR-3`, `MUNIT-5`, `CON-2`), and examples that build. What is yours, or your company's, goes in a **private layer on top**, without forking or editing a public skill:
 
-| Piece | What it is | Where it lives | How it uses devFoundry |
+| Piece | What it is | Where it lives | How it uses mulesmith |
 | --- | --- | --- | --- |
 | **Rules** | your conventions: names, rules of your own, public rules changed or turned off | a rules pack in a private repository of its own, brought into each project as `engineering/packs/<name>/` | the project's `engineering/profile.yaml` lists the pack; the skills that hold rules read the result |
-| **Agents** | who does the work: a developer, a reviewer, with their model, tools and permissions | `.claude/agents/` of a project, `~/.claude/agents/`, or a private plugin | each agent preloads the devFoundry skills it needs |
-| **Process** | how a change runs end to end: proposal, design review, approvals, pull requests, delivery | a skill in a private plugin, or your team's `AGENTS.md` and `CLAUDE.md` | it calls the devFoundry skills at each step |
+| **Agents** | who does the work: a developer, a reviewer, with their model, tools and permissions | `.claude/agents/` of a project, `~/.claude/agents/`, or a private plugin | each agent preloads the mulesmith skills it needs |
+| **Process** | how a change runs end to end: proposal, design review, approvals, pull requests, delivery | a skill in a private plugin, or your team's `AGENTS.md` and `CLAUDE.md` | it calls the mulesmith skills at each step |
 
 Skills are public because they are capabilities; agents, process and company rules are private because they differ per person and per company. [`docs/scope.md`](docs/scope.md) gives the reasons.
 
@@ -183,7 +185,7 @@ The pack must end up inside the project: the resolver refuses a pack outside it.
 A company pack, `engineering/packs/acme-mule/pack.yaml`:
 
 ```yaml
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: RulesPack
 name: acme-mule
 version: 1.0.0
@@ -215,7 +217,7 @@ rules:
 The project lists its packs in order (a later one wins) and adds its own choices:
 
 ```yaml
-apiVersion: devfoundry/v1
+apiVersion: mulesmith/v1
 kind: EngineeringProfile
 name: catalog-team
 extends:
@@ -251,7 +253,7 @@ It prints the layers, every rule a pack or the project changed, the rules of cla
 
 ### Agents
 
-An agent is a Markdown file with its instructions, and its `skills:` list loads devFoundry skills at start. A synthetic company developer, `.claude/agents/acme-mule-developer.md`:
+An agent is a Markdown file with its instructions, and its `skills:` list loads mulesmith skills at start. A synthetic company developer, `.claude/agents/acme-mule-developer.md`:
 
 ```markdown
 ---
@@ -277,17 +279,17 @@ Open the pull request with ACME's template; never merge it.
 
 The skills bring the practices and the project's rules; the agent adds what is yours: the model, its tools, and where its work stops.
 
-- **devFoundry must be installed too.** A skill missing from `skills:` is skipped with only a warning in the debug log, so the agent would run without the practices.
+- **mulesmith must be installed too.** A skill missing from `skills:` is skipped with only a warning in the debug log, so the agent would run without the practices.
 - **The prompt is not a gate.** "Never merge" in the prompt is an instruction, not a block. To enforce it, give the agent a `tools` list, or use permissions and branch protection.
 - **Agents from a plugin have limits.** They ignore `permissionMode`, `hooks` and `mcpServers`; keep the agent in `.claude/agents/` when it needs those.
 
 ### Process
 
-A process is the order of a change and its gates, for example: proposal, design review, implementation, code review, approval, merge, delivery. Write it as a skill of your own (`acme-change-flow`), and at each step name the devFoundry skill or the agent that does it: implementation is the `acme-mule-developer` agent (`acme-engineering:acme-mule-developer` when it comes from a plugin), the contract is `api-contracts:api-contract`, the design review checks the patterns with `integration-patterns` and `resilience-patterns`. devFoundry takes its requirements from wherever your process puts them (a spec-driven change, a `design.md`, requirement documents) and never asks for a process of its own.
+A process is the order of a change and its gates, for example: proposal, design review, implementation, code review, approval, merge, delivery. Write it as a skill of your own (`acme-change-flow`), and at each step name the mulesmith skill or the agent that does it: implementation is the `acme-mule-developer` agent (`acme-engineering:acme-mule-developer` when it comes from a plugin), the contract is `api-contracts:api-contract`, the design review checks the patterns with `integration-patterns` and `resilience-patterns`. mulesmith takes its requirements from wherever your process puts them (a spec-driven change, a `design.md`, requirement documents) and never asks for a process of its own.
 
 ### Where the private layer lives
 
-Keep the agents and the process in a private repository with the same layout as this one: a `.claude-plugin/marketplace.json` and a plugin with `skills/` (the process) and `agents/`. Install it like devFoundry; the part after `@` is the `name` in your `marketplace.json`:
+Keep the agents and the process in a private repository with the same layout as this one: a `.claude-plugin/marketplace.json` and a plugin with `skills/` (the process) and `agents/`. Install it like mulesmith; the part after `@` is the `name` in your `marketplace.json`:
 
 ```bash
 claude plugin marketplace add your-company/engineering-private
@@ -326,7 +328,7 @@ These plugins come out of a proof of concept with fixed cases, a baseline arm wi
 
 ## Scope
 
-`docs/scope.md` says what devFoundry is and is not: public skills here, personal and company rules and agents in private layers on top, MuleSoft first.
+`docs/scope.md` says what mulesmith is and is not: public MuleSoft skills here, personal and company rules and agents in private layers on top. Other languages go to `devfoundry`, a separate repository.
 
 ## How this repository is built
 

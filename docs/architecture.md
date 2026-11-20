@@ -36,7 +36,7 @@ Publishing to a company Exchange is an external action: the skill shows the repo
 ## Repository layout
 
 ```
-.claude-plugin/marketplace.json    the devfoundry marketplace
+.claude-plugin/marketplace.json    the mulesmith marketplace
 plugins/<plugin>/                  Claude Code plugin layout
 examples/profiles/                 synthetic example profiles and pack (eval cases)
 tooling/evals/                     fixed cases, runners and graders
@@ -45,5 +45,5 @@ docs/                              this file, decisions, proof-of-concept result
 
 ## Naming
 
-- The brand is devFoundry and the repository is `devfoundry-plugins`.
+- The brand and the repository are `mulesmith`. The project was first named devFoundry (repository `devfoundry-plugins`); `devfoundry` is now a separate public repository for other languages (see `docs/scope.md`).
 - Plugin and skill names are technical and carry no brand. A plugin name is an immutable slug.

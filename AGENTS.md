@@ -1,4 +1,4 @@
-# AGENTS.md — devFoundry plugins
+# AGENTS.md — mulesmith
 
 Claude Code plugins for MuleSoft and API engineering. This file is for agents working **on** this repository. Users of the plugins read `README.md`.
 
