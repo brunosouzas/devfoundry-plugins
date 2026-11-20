@@ -1,8 +1,37 @@
 # Changelog
 
-## Unreleased
+## 1.1.0, 2026-11-20
+
+The rules from the first use of the plugins on a real repository, and a README for newcomers. Every behaviour a new rule rests on was reproduced in a Mule 4.9.5 project with MUnit 3.4 first, or seen in that repository. No rule says the opposite of what it said in 1.0.0, so this is a MINOR release.
+
+| Plugin | 1.0.0 | 1.1.0 |
+| --- | --- | --- |
+| `mule-engineering` | 1.0.0 | 1.2.0 |
+| `resilience-patterns` | 1.0.0 | 1.2.0 |
+| `api-contracts` | 1.0.0 | 1.1.1 |
+| `integration-patterns` | 1.0.0 | 1.0.2 |
+| `api-first` | 1.0.0 | 1.0.1 |
+| `engineering-profile` | 1.0.0 | 1.0.1 |
+
+What 1.1.0 holds:
+- **New rules:**
+  - MUNIT-7: never `expectedErrorType` with a validation;
+  - MERR-3: a connection timeout, since `responseTimeout` does not bound the connect;
+  - DW-7 and DWTEST-1: check the type before literal `match` cases;
+  - DW-1: a module path of identifiers;
+  - NFR-1: a pattern's chosen values in the spec;
+  - plus rules for adding to an existing project (layout, error handling, logging, a shared properties file).
+- **Resilience:** a bounded fan-out still takes the time budget and bounded concurrency when its worst case passes the caller's wait. The fan-out example raises its exhausted-retries error outside the handler.
+- **README:**
+  - install on every surface, and how to use the plugins;
+  - your own layer of rules, agents and process, with rules packs reused from a repository of their own;
+  - how the repository is built and tested.
+- **Layout:** the example profiles moved to `examples/profiles/` and the format to `docs/profile-schema.md`.
+
+The entries below were written as the work went in.
 
 ### Changed
+- The README covers requirements, installing in the terminal, the desktop Code tab, VS Code, claude.ai and Cowork, and for a team; update and remove; how to use; your own layer of rules, agents and process, with rules packs reused from a private repository by git submodule; and how the repository is built and tested, with the profile eval case worked through and its limits.
 - The example profiles and pack moved from `profiles/examples/` to `examples/profiles/`, and the profile format from `profiles/SCHEMA.md` to `docs/profile-schema.md`. A top-level `profiles/` read as the place a project's rules are loaded from; they are loaded from the project's own `engineering/`. The skills' references to the format follow: `engineering-profile` 1.0.1, `api-contracts` 1.1.1.
 
 ### Added
