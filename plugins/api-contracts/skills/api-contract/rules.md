@@ -6,7 +6,7 @@ How to change this file:
 - **Add a rule:** copy an item, give it the next number in its group, write the rule, why it exists and how to check it. A new rule is a MINOR version of the skill.
 - **Change a rule:** edit it in place and keep its ID, so old reviews still point at the right rule. A rule that now says the opposite is a MAJOR version; clearer wording is a PATCH.
 - **Retire a rule:** keep its ID and heading, replace the text with `(retired in <version>: <reason>)`, and never reuse the number.
-- **Floor:** a rule marked `(floor)` cannot be disabled or overridden by a pack or a project profile (`profiles/SCHEMA.md`). Adding or removing the mark is a MAJOR version.
+- **Floor:** a rule marked `(floor)` cannot be disabled or overridden by a pack or a project profile (`docs/profile-schema.md`). Adding or removing the mark is a MAJOR version.
 - **Class:** every rule has a `Class:` line that says how the agent acts on it: `auto`, apply it; `propose`, recommend it with what it costs and apply it only when the developer agrees or the task already asks for it or implies it; `ask`, stop and ask the developer before acting on it. A new rule gets a class; a profile can change it by ID (`project-profile`, `references/layers.md`), except on a floor rule.
 
 ## Contract first (CONTRACT)

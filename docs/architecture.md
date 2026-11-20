@@ -38,7 +38,7 @@ Publishing to a company Exchange is an external action: the skill shows the repo
 ```
 .claude-plugin/marketplace.json    the devfoundry marketplace
 plugins/<plugin>/                  Claude Code plugin layout
-profiles/                          profile schema and examples
+examples/profiles/                 synthetic example profiles and pack (eval cases)
 tooling/evals/                     fixed cases, runners and graders
 docs/                              this file, decisions, proof-of-concept results
 ```

@@ -1,6 +1,6 @@
 # Layers: how a profile and its packs merge
 
-The owner of the merge rules. `profiles/SCHEMA.md` in the devFoundry repository describes the file formats and points here; `scripts/resolve-profile.py` implements these rules.
+The owner of the merge rules. `docs/profile-schema.md` in the devFoundry repository describes the file formats and points here; `scripts/resolve-profile.py` implements these rules.
 
 ## Order
 

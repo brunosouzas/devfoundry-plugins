@@ -139,7 +139,7 @@ devFoundry is the public layer: skills that hold practices, each rule with an ID
 
 | Piece | What it is | Where it lives | How it uses devFoundry |
 | --- | --- | --- | --- |
-| **Rules** | your conventions: names, rules of your own, public rules changed or turned off | a rules pack in your private repository, brought into each project as `engineering/packs/<name>/` | the project's `engineering/profile.yaml` lists the pack; the skills that hold rules read the result |
+| **Rules** | your conventions: names, rules of your own, public rules changed or turned off | a rules pack in a private repository of its own, brought into each project as `engineering/packs/<name>/` | the project's `engineering/profile.yaml` lists the pack; the skills that hold rules read the result |
 | **Agents** | who does the work: a developer, a reviewer, with their model, tools and permissions | `.claude/agents/` of a project, `~/.claude/agents/`, or a private plugin | each agent preloads the devFoundry skills it needs |
 | **Process** | how a change runs end to end: proposal, design review, approvals, pull requests, delivery | a skill in a private plugin, or your team's `AGENTS.md` and `CLAUDE.md` | it calls the devFoundry skills at each step |
 
@@ -154,6 +154,29 @@ Rules have three levels of precedence, and a higher one wins. Personal and compa
 | Public | the skills of this repository | the practices |
 | Packs | `engineering/packs/<name>/pack.yaml` in the project, copied from your private repository (a git submodule, or a copy pinned to a version) | the company's or your own conventions |
 | Project | `engineering/profile.yaml` | what this one project or team decides, over its packs |
+
+Nothing is loaded from this repository: the skill reads only the project's own `engineering/` folder. The `examples/profiles/` folder here holds synthetic examples, never real rules.
+
+#### Reuse: your rules in a repository of their own
+
+Write your rules once and use them in every project:
+
+1. **Create a private repository for the pack**, for example `your-company/acme-mule-rules`, with `pack.yaml` at its root (the format is [below](#a-pack)). Tag each version: `v1.0.0`, `v1.1.0`.
+2. **Bring it into each project** as a git submodule pinned to a tag:
+
+   ```bash
+   git submodule add https://github.com/your-company/acme-mule-rules.git engineering/packs/acme-mule
+   git -C engineering/packs/acme-mule checkout v1.0.0
+   git add .gitmodules engineering/packs/acme-mule
+   ```
+
+3. **Write the project's `engineering/profile.yaml`.** It lists the pack in `extends`, plus anything this project decides (see [the project profile](#the-project-profile)). Two lines can be enough.
+4. **Commit.** The project now records which version of the rules it follows.
+5. **To move to a new version of the rules,** check out the new tag in the submodule and commit. Each project moves when it is ready.
+
+Whoever clones the project needs the submodule too: `git clone --recurse-submodules`, or `git submodule update --init` after a plain clone. The same holds for a CI pipeline, which also needs read access to the private pack repository. If you would rather not use submodules, copy the pack folder into `engineering/packs/<name>/` and keep its version in `pack.yaml`.
+
+The pack must end up inside the project: the resolver refuses a pack outside it. That keeps a project's rules in its own history, next to the code they shaped.
 
 #### A pack
 
@@ -224,7 +247,7 @@ Ask the agent which rules are in effect, or run the resolver from a clone of thi
 uv run plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py path/to/your-project
 ```
 
-It prints the layers, every rule a pack or the project changed, the rules of class `ask` and `propose`, and the naming in effect. An error in a profile or a pack stops the agent before it writes code. The file formats are in [`profiles/SCHEMA.md`](profiles/SCHEMA.md), and the merge rules in [`layers.md`](plugins/engineering-profile/skills/project-profile/references/layers.md). [`profiles/examples/`](profiles/examples/) has the synthetic ACME pack and two naming-only profiles in the older v0 schema, which cannot use `extends` or `rules`; start from the v1 examples above.
+It prints the layers, every rule a pack or the project changed, the rules of class `ask` and `propose`, and the naming in effect. An error in a profile or a pack stops the agent before it writes code. The file formats are in [`docs/profile-schema.md`](docs/profile-schema.md), and the merge rules in [`layers.md`](plugins/engineering-profile/skills/project-profile/references/layers.md). [`examples/profiles/`](examples/profiles/) has the synthetic ACME pack and two naming-only profiles in the older v0 schema, which cannot use `extends` or `rules`; start from the v1 examples above.
 
 ### Agents
 
@@ -276,7 +299,7 @@ Claude Code reads a private repository with the git credentials already on the m
 - **Over SSH:** the key must be loaded in `ssh-agent` and the host already in `known_hosts`.
 - **Over HTTPS:** a stored credential is needed. On GitHub, run `gh auth login`, then `gh auth setup-git`.
 
-Installing the plugin does not bring the rules into a project. Keep each rules pack in a repository (or folder) of its own, with `pack.yaml` at its root. Each project brings it in as `engineering/packs/<name>/`, by git submodule or by a copy pinned to a version, and lists it in its profile. The resolver refuses a pack outside the project.
+Installing the plugin does not bring the rules into a project. The rules packs live in repositories of their own, brought into each project as [Reuse](#reuse-your-rules-in-a-repository-of-their-own) shows.
 
 ## Stack names
 
@@ -316,13 +339,11 @@ This part is for contributors: what each folder holds, how a skill is put togeth
 plugins/<plugin>/                 one plugin each
   .claude-plugin/plugin.json      name, version, description
   skills/<skill>/                 one or more skills (below)
-profiles/                         the profile format, for readers and for the eval cases
-  SCHEMA.md                       the engineering/profile.yaml and pack.yaml formats
-  examples/                       synthetic profiles A and B and the ACME pack, used by the evals
+examples/profiles/                synthetic profiles A and B and the ACME pack, used by the evals (never real rules)
 tooling/ci/                       the checks CI runs, runnable locally
 tooling/evals/                    the fixed test cases and the scripts that run them
   cases/<id>/                     prompt.md, fixture/, grading.md, graders
-docs/                             scope, architecture, the proof-of-concept results, backlog
+docs/                             the profile format (profile-schema.md), scope, architecture, results, backlog
 .github/workflows/ci.yml          CI on every pull request
 AGENTS.md                         the rules for changing this repository (read by people and agents)
 CHANGELOG.md                      what changed in each version
@@ -381,7 +402,7 @@ The skills write rules into code that ships, in a domain where a model can be co
 The question: does the agent follow the naming of `engineering/profile.yaml` because of the skill, and does the same skill give other names under another profile, without anyone editing the skill?
 
 1. **The project.** [`cases/T3b/fixture/`](tooling/evals/cases/T3b/fixture) is a small Mule API written "before" any profile: 4 Mule configuration files and 6 flows, with names that match neither profile (`getOrderByIdFlow`, `orders-api.xml`, a variable `orderID`).
-2. **The two profiles.** The runner copies [`profiles/examples/profile-a.yaml`](profiles/examples/profile-a.yaml) (case `T3bA`) or [`profile-b.yaml`](profiles/examples/profile-b.yaml) (case `T3bB`) into the project as `engineering/profile.yaml`.
+2. **The two profiles.** The runner copies [`examples/profiles/profile-a.yaml`](examples/profiles/profile-a.yaml) (case `T3bA`) or [`profile-b.yaml`](examples/profiles/profile-b.yaml) (case `T3bB`) into the project as `engineering/profile.yaml`.
 3. **The prompt.** In [`prompt.md`](tooling/evals/cases/T3b/prompt.md) (in Portuguese), a developer asks for a new endpoint, `GET /products/{id}`, and says nothing about names.
 4. **The grade.** [`T3/check.py`](tooling/evals/cases/T3/check.py) checks only the new code against the active profile:
 
@@ -398,7 +419,7 @@ The question: does the agent follow the naming of `engineering/profile.yaml` bec
    ```bash
    MODEL=claude-sonnet-5-5 tooling/evals/run-plugin.sh T3bA 1 /tmp/evals /tmp/evals/results plugins/engineering-profile
    MODEL=claude-sonnet-5-5 tooling/evals/run-baseline.sh T3bA 1 /tmp/evals-baseline /tmp/evals-baseline/results
-   python3 tooling/evals/cases/T3/check.py /tmp/evals/claude-sonnet-5-5/T3bA-r1/project profiles/examples/profile-a.yaml --base tooling/evals/cases/T3b/fixture
+   python3 tooling/evals/cases/T3/check.py /tmp/evals/claude-sonnet-5-5/T3bA-r1/project examples/profiles/profile-a.yaml --base tooling/evals/cases/T3b/fixture
    ```
 
 6. **The recorded result.** 2 profiles × 2 models (Opus 5.5 and Sonnet 5.5) × 3 runs = 12 runs per arm.

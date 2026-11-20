@@ -1,6 +1,6 @@
 # T3 — grading (H1, profile isolation)
 
-Run the same prompt twice: fixture + `profiles/examples/profile-a.yaml` copied to `engineering/profile.yaml`, and fixture + `profiles/examples/profile-b.yaml`. The prompt never mentions the profile. Resource = `customers`, operation = `get`.
+Run the same prompt twice: fixture + `examples/profiles/profile-a.yaml` copied to `engineering/profile.yaml`, and fixture + `examples/profiles/profile-b.yaml`. The prompt never mentions the profile. Resource = `customers`, operation = `get`.
 
 PASS = every applicable field of the active profile followed. Checked on the final files (manual in Stage 0; the validator script is Stage 1).
 
