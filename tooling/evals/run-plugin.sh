@@ -30,7 +30,7 @@ id="$case_id-r$n"
 dir="$work/$model/$id/project"
 rm -rf "$work/$model/$id"; mkdir -p "$dir" "$results"
 cp -R "$here/cases/$t/fixture/." "$dir/"
-if [ -n "$profile" ]; then mkdir -p "$dir/engineering"; cp "$here/../../profiles/examples/$profile" "$dir/engineering/profile.yaml"; fi
+if [ -n "$profile" ]; then mkdir -p "$dir/engineering"; cp "$here/../../examples/profiles/$profile" "$dir/engineering/profile.yaml"; fi
 prompt="${PROMPT:-$(cat "$here/cases/$t/prompt.md")}"  # PROMPT override: harness smoke check only
 settings="$(cat "$here/plugin-arm-settings.json")"
 (cd "$dir" && claude -p "$prompt" \

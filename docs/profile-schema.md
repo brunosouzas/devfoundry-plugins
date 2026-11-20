@@ -10,7 +10,7 @@ Rules come in layers. When two layers set the same thing, the higher one wins:
 2. **Packs:** the profiles listed in `extends`, in order. A company pack, a personal pack. Each pack overrides the ones before it.
 3. **Project:** `engineering/profile.yaml` itself.
 
-A pack has the same shape as a profile, with `kind: RulesPack` and a version. Personal and company packs live in private repositories and come into the project as a folder under `engineering/packs/<name>/` (git submodule, or a copy pinned to a version). Packs never go into the public repository; the only exception is the synthetic example `profiles/examples/packs/acme-mule/`, used by the eval cases.
+A pack has the same shape as a profile, with `kind: RulesPack` and a version. Personal and company packs live in private repositories and come into the project as a folder under `engineering/packs/<name>/` (git submodule, or a copy pinned to a version). Packs never go into the public repository; the only exception is the synthetic example `examples/profiles/packs/acme-mule/`, used by the eval cases.
 
 Nothing is overridden silently. Every rule that a pack or the project changes is listed, with its layer, in the agent's report. When a higher layer replaces a value set by a lower one, the report says which won.
 

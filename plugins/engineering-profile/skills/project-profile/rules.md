@@ -1,6 +1,6 @@
 # Project profile: rules
 
-Floor rules: the public minimum that no pack or project profile can disable or override (`profiles/SCHEMA.md`, "How layers merge"). A layer can add a stricter rule of its own.
+Floor rules: the public minimum that no pack or project profile can disable or override (`docs/profile-schema.md`, "How layers merge"). A layer can add a stricter rule of its own.
 
 How to change this file: add a rule with the next number; edit a rule in place and keep its ID; retire a rule by keeping its ID with `(retired in <version>: <reason>)`, never reusing the number. Marking a rule `(floor)`, or removing the mark, is a MAJOR version.
 

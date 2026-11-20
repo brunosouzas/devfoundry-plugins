@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- The example profiles and pack moved from `profiles/examples/` to `examples/profiles/`, and the profile format from `profiles/SCHEMA.md` to `docs/profile-schema.md`. A top-level `profiles/` read as the place a project's rules are loaded from; they are loaded from the project's own `engineering/`. The skills' references to the format follow: `engineering-profile` 1.0.1, `api-contracts` 1.1.1.
+
 ### Added
 - The other thirteen gaps from the first use on a real repository. The behaviours they rest on were reproduced in a Mule 4.9.5 project first (a `raise-error` inside a handler, a hyphen in a module path, an empty `munit:behavior`), or seen in that repository. `mule-engineering` 1.2.0, `api-contracts` 1.1.0, `api-first` 1.0.1, `integration-patterns` 1.0.2, `resilience-patterns` 1.2.0.
   - `mule-app`: LAYOUT-2 and MERR-1 say what a new file or flow does in an existing project with another layout or no global handler; MLOG-1 gives the one-line JSON text form for a shared `log4j2.xml`, and why a `write` without `output text/plain` is logged escaped; CFG-3 says a properties file is global to the application; the steps say to translate an error with `error-mapping`, since a `raise-error` inside a handler logs an ERROR with a stack trace even with `logException="false"`.

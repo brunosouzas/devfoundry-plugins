@@ -5,7 +5,7 @@ Claude Code plugins for MuleSoft and API engineering. This file is for agents wo
 ## Layout
 
 - `plugins/<plugin>/`: one plugin each, in the Claude Code layout (`.claude-plugin/plugin.json`, `skills/<skill>/SKILL.md`, and `references/`, `assets/`, `scripts/` next to the skill). `.claude-plugin/marketplace.json` lists them.
-- `profiles/`: the `engineering/profile.yaml` schema (`SCHEMA.md`) and example profiles.
+- `examples/profiles/`: synthetic example profiles and the example ACME pack, used by the eval cases. The format they follow is `docs/profile-schema.md`. Real packs never go here.
 - `tooling/ci/`: the scripts CI runs (`.github/workflows/ci.yml`), runnable locally.
 - `tooling/evals/`: the fixed eval cases (`cases/<id>/`: prompt, fixture, rubric, graders) and their runners. See `tooling/evals/README.md`.
 - `docs/`: architecture, decisions, and the results of the proof of concept these plugins came from.
