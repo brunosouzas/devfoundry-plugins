@@ -297,7 +297,7 @@ The other skills are not technologies: `project-profile`, `api-first-implementat
 
 These plugins come out of a proof of concept with fixed cases, a baseline arm without the plugins, and real Mule builds. `docs/poc-results.md` has the numbers and their limits. In short:
 
-- The profile skill made Opus 5.5 and Sonnet 5.5 follow a project profile in a legacy project in 12/12 runs, against 3/12 without it.
+- In a legacy project, the profile skill followed the project profile in 12 of 12 runs, against 3 of 12 without it. The plugin arm's profiles also had a precedence rule the baseline's lacked; [the profile case](#an-example-the-profile-case-t3b) explains the test and this limit.
 - The Idempotent Receiver was applied in every run where it was needed, and in none of the 18 runs of the negative controls. The generated code built, and its duplicate test passed, in 6/6 projects.
 - The Circuit Breaker beat the baseline on Opus 5.5 (3/3 vs 0/3, with 3/3 projects building and passing their tests), but not on Sonnet 5.5. The baselines built a breaker too, but counted client errors as dependency failures.
 
@@ -305,9 +305,114 @@ These plugins come out of a proof of concept with fixed cases, a baseline arm wi
 
 `docs/scope.md` says what devFoundry is and is not: public skills here, personal and company rules and agents in private layers on top, MuleSoft first.
 
+## How this repository is built
+
+This part is for contributors: what each folder holds, how a skill is put together, and how we know a skill works.
+
+### Folders
+
+```
+.claude-plugin/marketplace.json   the marketplace: lists the six plugins
+plugins/<plugin>/                 one plugin each
+  .claude-plugin/plugin.json      name, version, description
+  skills/<skill>/                 one or more skills (below)
+profiles/                         the profile format, for readers and for the eval cases
+  SCHEMA.md                       the engineering/profile.yaml and pack.yaml formats
+  examples/                       synthetic profiles A and B and the ACME pack, used by the evals
+tooling/ci/                       the checks CI runs, runnable locally
+tooling/evals/                    the fixed test cases and the scripts that run them
+  cases/<id>/                     prompt.md, fixture/, grading.md, graders
+docs/                             scope, architecture, the proof-of-concept results, backlog
+.github/workflows/ci.yml          CI on every pull request
+AGENTS.md                         the rules for changing this repository (read by people and agents)
+CHANGELOG.md                      what changed in each version
+```
+
+Only `plugins/` and the marketplace file reach a user. Everything else is how the skills are written, checked and measured.
+
+### Inside a skill
+
+Anthropic's skill format is a folder with a `SKILL.md`, plus any files the skill reads or runs. These skills use that format and give each kind of file its own place. Not every skill has every piece. [`mule-engineering/skills/mule-app`](plugins/mule-engineering/skills/mule-app) has them all:
+
+```
+skills/mule-app/
+  SKILL.md                        the trigger (description) and the procedure the agent follows
+  rules.md                        the rules, each with an ID, Why, Check and Class
+  references/mule4/               how the rules apply in Mule 4, with the pitfalls a build caught
+  assets/mule4/error-handling/    a complete Mule project: the rules' code and its MUnit tests
+  scripts/
+    verify-examples.sh            builds every project in assets/ and runs its tests
+    check-docnames.py             a check the agent can run on a project
+    tests/                        the unit tests of that check
+```
+
+A pattern skill, such as [`resilience-patterns`](plugins/resilience-patterns/skills/resilience-patterns), has no `rules.md`. Its `SKILL.md` holds a catalog of patterns with "when to use" and "when NOT". Each pattern then has two references:
+- a platform-neutral `references/circuit-breaker.md`: why, when, when NOT, failures, limits and the test;
+- the Mule 4 version, `references/mule4/circuit-breaker.md`.
+
+| Piece | Why it exists |
+| --- | --- |
+| `SKILL.md` | Its `description` decides when the skill loads, so it lists the cases and a "Do NOT use" clause. The body stays short and points to the other files, which the agent reads only when it needs them. |
+| `rules.md` | A rule with an ID can be cited ("breaks MERR-3"), changed by a pack, and versioned: a new rule is a minor version, a reversed one a major. Its `Class` says whether the agent applies it, proposes it or asks first. |
+| `references/` | The why of a pattern does not depend on the platform; the code does. Splitting them lets another stack add `references/<platform>/` without touching the rest. |
+| `assets/` | The agent copies what it sees. Every code example is a project that builds and passes its tests, so the agent never copies untested code. |
+| `scripts/` | Checks the agent or a contributor can run, with unit tests where the script has logic (`resolve-profile.py`, `check-docnames.py`). |
+
+### How we know a skill works
+
+The skills write rules into code that ships, in a domain where a model can be confidently wrong. Each layer of checks catches a different mistake:
+
+1. **The examples build.** `verify-examples.sh` runs `mvn clean test` on every project in `assets/`. When an example's test guards a pattern, a contributor also does a **mutation check** by hand: remove the pattern in a copy, and the test must fail. Otherwise the test proves nothing.
+2. **CI** (`tooling/ci/`, on every pull request) runs these checks:
+   - it validates the manifests and the skill frontmatter;
+   - it runs the scripts' unit tests;
+   - it checks the display names and flow descriptions of the examples;
+   - it compiles and packages every example.
+
+   MUnit needs MuleSoft's EE repository, which needs credentials, so it runs locally.
+3. **Fixed eval cases** (`tooling/evals/cases/`) check that the agent behaves differently *because of* the skill. A case runs in two arms, from the same synthetic project and the same prompt, 3 runs per model in each arm:
+   - **baseline:** Claude Code with no plugins;
+   - **plugin:** the same, with the plugins.
+
+   A grader script scores each run against `grading.md`. A person or a blind reviewer grades the items that need judgment. A case passes when the plugin arm passes and the baseline is clearly worse. A **negative case** checks the opposite: the skill must *not* add a pattern the problem does not need. T8 and T9 (packs and floor rules) run in the plugin arm only, because they test how the profile resolves, not a difference from the baseline.
+
+#### An example: the profile case (T3b)
+
+The question: does the agent follow the naming of `engineering/profile.yaml` because of the skill, and does the same skill give other names under another profile, without anyone editing the skill?
+
+1. **The project.** [`cases/T3b/fixture/`](tooling/evals/cases/T3b/fixture) is a small Mule API written "before" any profile: 4 Mule configuration files and 6 flows, with names that match neither profile (`getOrderByIdFlow`, `orders-api.xml`, a variable `orderID`).
+2. **The two profiles.** The runner copies [`profiles/examples/profile-a.yaml`](profiles/examples/profile-a.yaml) (case `T3bA`) or [`profile-b.yaml`](profiles/examples/profile-b.yaml) (case `T3bB`) into the project as `engineering/profile.yaml`.
+3. **The prompt.** In [`prompt.md`](tooling/evals/cases/T3b/prompt.md) (in Portuguese), a developer asks for a new endpoint, `GET /products/{id}`, and says nothing about names.
+4. **The grade.** [`T3/check.py`](tooling/evals/cases/T3/check.py) checks only the new code against the active profile:
+
+   | | Profile A expects | Profile B expects |
+   | --- | --- | --- |
+   | Flow | `products-get-flow` | `ACM_PRODUCTS_GET_FL` |
+   | File | `src/main/mule/products.xml` | `src/main/mule/impl/products-impl.xml` |
+   | File for new global elements | `src/main/mule/global.xml` | `src/main/mule/common/acm-global-config.xml` |
+   | Variable rule | camelCase (`productId`) | `v_` + snake_case (`v_product_id`) |
+
+   The last two rows do not count when the run adds no global element or no variable.
+5. **Run it.** One plugin run and one baseline run, then the grade:
+
+   ```bash
+   MODEL=claude-sonnet-5-5 tooling/evals/run-plugin.sh T3bA 1 /tmp/evals /tmp/evals/results plugins/engineering-profile
+   MODEL=claude-sonnet-5-5 tooling/evals/run-baseline.sh T3bA 1 /tmp/evals-baseline /tmp/evals-baseline/results
+   python3 tooling/evals/cases/T3/check.py /tmp/evals/claude-sonnet-5-5/T3bA-r1/project profiles/examples/profile-a.yaml --base tooling/evals/cases/T3b/fixture
+   ```
+
+6. **The recorded result.** 2 profiles × 2 models (Opus 5.5 and Sonnet 5.5) × 3 runs = 12 runs per arm.
+   - **Plugin: 12 of 12 pass.** Every run put the new code in the profile's names and files and renamed nothing old. Each run also listed where the legacy code differs.
+   - **Baseline: 3 of 12 pass,** all three in one cell (Sonnet, profile B). Every baseline run read the profile and saw the conflict. In 9 runs the new connection went into the old `global-config.xml`, and 3 runs used the legacy names everywhere (`getProductByIdFlow`, `productID`).
+7. **What it does not prove.**
+   - **Two things changed in the plugin arm.** During the runs, the profiles gained a `precedence` block: new code follows the profile, and legacy code stays. Only the plugin runs had it; the baseline runs used the profiles before it was added. So the result shows that "skill + precedence" beats "no skill, profile without precedence", and the two effects were not separated. Today both runners copy the same file, so a new baseline run would separate them.
+   - **A project without legacy code does not show the difference.** In the proof of concept's smaller case (T3, a project with no legacy code, whose fixture is not kept here), the baseline followed the profile too: 6 of 6 in both arms.
+
+The other cases with a baseline arm work the same way. T1b and T2 cover the Idempotent Receiver (needed, and not needed), T5 and T6 the Circuit Breaker, and TAPI a whole API from requirements. [`tooling/evals/README.md`](tooling/evals/README.md) lists every case and its runners. [`docs/poc-results.md`](docs/poc-results.md) has the proof-of-concept results (T1b to T7) and their limits. The TAPI calibration is in [CHANGELOG.md](CHANGELOG.md), version 1.0.0.
+
 ## Develop
 
-See `AGENTS.md` for the rules that keep the skills correct (verified examples, split references, regression cases), and `tooling/evals/README.md` for the eval runners.
+Read [`AGENTS.md`](AGENTS.md) before a change. It holds the rules that keep the skills correct, and its table says how much to test for each kind of change: from `claude plugin validate` for a doc fix, to the full fixed cases with a baseline arm for a new pattern. A change goes in a pull request, with what was checked in its description.
 
 ## License
 
