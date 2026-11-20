@@ -13,9 +13,22 @@ Claude Code plugins for MuleSoft and API engineering. They make an agent think a
 
 Each pattern has a platform-neutral reference and a Mule 4 realization backed by a project that builds and passes its MUnit tests.
 
+## Requirements
+
+- **Claude Code**, in the terminal, the Code tab of the Claude desktop app, or the VS Code extension. The plugins work in full there: the skills read your project, write the code and run the build.
+- **For Mule projects:** what your project already builds with, so the agent can run `mvn clean test`:
+  - the JDK your Mule runtime supports (17, which Mule 4.6 and later support);
+  - Maven 3.9.x, because Maven 3.10 breaks the Mule Maven plugins;
+  - access to MuleSoft's EE Maven repository, which MUnit needs.
+- **Optional:** [`uv`](https://docs.astral.sh/uv/), to print the rules a project profile puts in effect (see [Check what is in effect](#check-what-is-in-effect)).
+
 ## Install
 
-In Claude Code:
+The marketplace is named `devfoundry`. Add it once, then install the plugins you want. Most Mule API work uses all six: `api-first` calls the others at each step.
+
+### Claude Code, in the terminal
+
+In a Claude Code session (each `/plugin install` opens the plugin's panel, where you pick the scope and confirm):
 
 ```
 /plugin marketplace add brunosouzas/devfoundry-plugins
@@ -27,11 +40,243 @@ In Claude Code:
 /plugin install mule-engineering@devfoundry
 ```
 
-The skills load on their own when the work matches. You can also ask for them by name.
+Or from a shell, with a scope (`user` for every project, `project` to record it in this repository's settings, `local` for this repository only on your machine):
 
-## Project profile
+```bash
+claude plugin marketplace add brunosouzas/devfoundry-plugins
+for p in api-first integration-patterns resilience-patterns engineering-profile api-contracts mule-engineering; do
+  claude plugin install "$p@devfoundry" --scope user
+done
+```
 
-Put the conventions in `engineering/profile.yaml` at the project root. See `profiles/SCHEMA.md` and the examples in `profiles/examples/`. A profile can extend your company's or your own rules packs, kept in private repositories, and override, disable or add rules by ID. Every rule has a decision class (`auto`: the agent applies it; `propose`: it recommends it, says what it costs, and applies it when the developer agrees or the task already asks for it or implies it; `ask`: it stops and asks), which a profile can change by ID; floor rules (synthetic test data, no secrets in code, a declared security scheme, no payload or personal data in logs) cannot be turned off. `plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py` shows the rules in effect. Without a profile, the skills follow the conventions already in the project, and say so.
+A plugin installed from a shell loads the next time Claude Code starts, or after `/reload-plugins`.
+
+### The Code tab of the Claude desktop app
+
+The desktop app's Code tab, the terminal and the VS Code extension read the same settings on one computer, so a plugin installed at user scope in one is there in the others.
+
+1. Add the marketplace once from a terminal: `claude plugin marketplace add brunosouzas/devfoundry-plugins`.
+2. Click **+** next to the prompt box, then **Add plugins** (or **Plugins > Browse plugins**), pick a devFoundry plugin and its scope.
+3. **Plugins > Manage plugins** enables, disables or uninstalls them.
+
+Cloud sessions of the desktop app do not get these plugins.
+
+### VS Code
+
+Type `/plugins` in the Claude Code panel to open **Manage plugins**, add `brunosouzas/devfoundry-plugins` on its **Marketplaces** tab, then install each plugin with a scope.
+
+### claude.ai and Cowork
+
+On a paid plan, **Customize > Plugins > Add > Add marketplace**, then `brunosouzas/devfoundry-plugins`. Cowork takes its plugins from the same claude.ai account.
+
+- **In chat** the skills guide the answer, but chat cannot open your project or run its build.
+- **In Cowork** we have not tried a Mule build.
+- The work these plugins are for (code that builds and tests that pass) belongs in Claude Code.
+- Plugins turned on in claude.ai also reach Claude Code sessions in the terminal, as `<plugin>@synced`. Install them in one place, or you get two copies.
+
+### A whole team
+
+A project can offer the plugins to everyone who opens it. Add to its `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "devfoundry": {
+      "source": { "source": "github", "repo": "brunosouzas/devfoundry-plugins" }
+    }
+  },
+  "enabledPlugins": {
+    "api-first@devfoundry": true,
+    "integration-patterns@devfoundry": true,
+    "resilience-patterns@devfoundry": true,
+    "engineering-profile@devfoundry": true,
+    "api-contracts@devfoundry": true,
+    "mule-engineering@devfoundry": true
+  }
+}
+```
+
+Claude Code registers the marketplace when a contributor trusts the folder. Each contributor still installs the plugins once per clone (`claude plugin install <plugin>@devfoundry --scope project`). To install them for everyone without that step, an organisation uses its managed settings, which take the same two keys.
+
+### Update and remove
+
+```bash
+claude plugin marketplace update devfoundry                 # read the latest versions
+claude plugin update mule-engineering@devfoundry            # then restart, or /reload-plugins
+claude plugin uninstall mule-engineering@devfoundry         # add --scope project if it was installed that way
+claude plugin marketplace remove devfoundry                 # removes the marketplace and all its plugins
+```
+
+Auto-update is off by default for a marketplace like this one; turn it on in `/plugin` > **Marketplaces**. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
+
+## Use
+
+There is no command to learn. Describe the work as you would to a colleague, in a Mule project, and the skills load when the work matches:
+
+> Implement `GET /orders/{orderId}` following `docs/order-status/requirements.md`.
+
+With the plugins, the agent:
+
+1. **Looks for what exists** (a spec in the project, an Exchange asset the project names, a System API) and says what it reused.
+2. **Numbers every requirement** (R1, R2...) before it writes code.
+3. **Writes or extends the spec** the app loads, then the flows, following the project's profile or its existing conventions.
+4. **Decides the integration patterns** the flow needs, even when you named none: a client that can resend the request, a backend that can hang, one call per item of a list.
+5. **Tests each endpoint through HTTP** with MUnit, at least one test per requirement or the reason it has none, and runs `mvn clean test` when it can (it says so when it cannot).
+6. **Ends with what you must decide and a table of every requirement** (done and tested, done and not tested, or not done, with the reason), and one line per pattern considered: `applied` or `not applied`, and why.
+
+Smaller asks work too: "review this flow", "this API hangs when the scoring service is slow", "write the MUnit tests for this endpoint". To ask for a skill by name, use its full name, for example `/mule-engineering:munit`; `+ > Slash commands` in the desktop app lists them.
+
+### If a skill does not load
+
+- Check that the plugin is installed and enabled: `claude plugin list`, or `/plugin`. Load failures show on the **Errors** tab of `/plugin`.
+- After an install or update from a shell, restart Claude Code or run `/reload-plugins`.
+- Ask for it by name: type `/` and look for `/<plugin>:<skill>`, such as `/api-first:api-first-implementation`.
+- The skills are for Mule 4 projects and API specs. In another stack only the platform-neutral ones apply: `api-first`, `integration-patterns`, `resilience-patterns`, `api-contracts`.
+
+## Your own layer: rules, agents and process
+
+devFoundry is the public layer: skills that hold practices, each rule with an ID (`MERR-3`, `MUNIT-5`, `CON-2`), and examples that build. What is yours, or your company's, goes in a **private layer on top**, without forking or editing a public skill:
+
+| Piece | What it is | Where it lives | How it uses devFoundry |
+| --- | --- | --- | --- |
+| **Rules** | your conventions: names, rules of your own, public rules changed or turned off | a rules pack in your private repository, brought into each project as `engineering/packs/<name>/` | the project's `engineering/profile.yaml` lists the pack; the skills that hold rules read the result |
+| **Agents** | who does the work: a developer, a reviewer, with their model, tools and permissions | `.claude/agents/` of a project, `~/.claude/agents/`, or a private plugin | each agent preloads the devFoundry skills it needs |
+| **Process** | how a change runs end to end: proposal, design review, approvals, pull requests, delivery | a skill in a private plugin, or your team's `AGENTS.md` and `CLAUDE.md` | it calls the devFoundry skills at each step |
+
+Skills are public because they are capabilities; agents, process and company rules are private because they differ per person and per company. [`docs/scope.md`](docs/scope.md) gives the reasons.
+
+### Rules
+
+Rules have three levels of precedence, and a higher one wins. Personal and company packs both sit at the Packs level:
+
+| Layer | Where | Holds |
+| --- | --- | --- |
+| Public | the skills of this repository | the practices |
+| Packs | `engineering/packs/<name>/pack.yaml` in the project, copied from your private repository (a git submodule, or a copy pinned to a version) | the company's or your own conventions |
+| Project | `engineering/profile.yaml` | what this one project or team decides, over its packs |
+
+#### A pack
+
+A company pack, `engineering/packs/acme-mule/pack.yaml`:
+
+```yaml
+apiVersion: devfoundry/v1
+kind: RulesPack
+name: acme-mule
+version: 1.0.0
+layer: company
+mulesoft:
+  naming:
+    flow: "acme-{resource}-{operation}-flow"        # acme-customers-get-flow
+    implFile: "src/main/mule/acme/{resource}.xml"
+    globalConfigFile: "src/main/mule/acme/acme-global.xml"
+    variable: "snake_case"
+rules:
+  add:
+    - id: ACME-LOG-1
+      text: "Every new endpoint flow logs one line on entry and one on exit, with category com.acme.api.<resource>."
+      why: "ACME's log routing and audit dashboards select API traffic by that category."
+      check: "each new endpoint flow has two loggers with category com.acme.api.<resource>"
+  override:
+    BUILD-1: { class: auto, why: "every ACME build pins Maven 3.9 and Java 17; no need to ask" }
+  disable:
+    LAYOUT-2: "our project template has its own folder layout"
+```
+
+- **`add`** a rule of your own. Its ID takes a prefix of yours (`ACME-`), never a public one, so it cannot collide with a future public rule.
+- **`override`** a public rule by ID: its text, its decision class, or both.
+- **`disable`** a public rule by ID, with the reason.
+
+#### The project profile
+
+The project lists its packs in order (a later one wins) and adds its own choices:
+
+```yaml
+apiVersion: devfoundry/v1
+kind: EngineeringProfile
+name: catalog-team
+extends:
+  - engineering/packs/acme-mule
+mulesoft:
+  naming:
+    variable: "camelCase"   # this team keeps camelCase, over the company's snake_case
+```
+
+Without a profile, the skills follow the conventions already in the project, and say so.
+
+#### Decision classes
+
+Every rule has one, and a pack or the project can change it by ID:
+
+- `auto`: the agent applies it;
+- `propose`: it recommends it, says what it costs, and applies it when you agree or the task already asks for it or implies it;
+- `ask`: it stops and asks you first.
+
+#### What cannot be turned off
+
+Floor rules: synthetic test data, no secrets in code, a declared security scheme, and never a full payload or personal data in logs at INFO or above. A pack or the project that tries to disable or override one is refused and the refusal is reported; the rest of the profile still applies. A pack can add a stricter rule of its own.
+
+#### Check what is in effect
+
+Ask the agent which rules are in effect, or run the resolver from a clone of this repository (it needs `uv`):
+
+```bash
+uv run plugins/engineering-profile/skills/project-profile/scripts/resolve-profile.py path/to/your-project
+```
+
+It prints the layers, every rule a pack or the project changed, the rules of class `ask` and `propose`, and the naming in effect. An error in a profile or a pack stops the agent before it writes code. The file formats are in [`profiles/SCHEMA.md`](profiles/SCHEMA.md), and the merge rules in [`layers.md`](plugins/engineering-profile/skills/project-profile/references/layers.md). [`profiles/examples/`](profiles/examples/) has the synthetic ACME pack and two naming-only profiles in the older v0 schema, which cannot use `extends` or `rules`; start from the v1 examples above.
+
+### Agents
+
+An agent is a Markdown file with its instructions, and its `skills:` list loads devFoundry skills at start. A synthetic company developer, `.claude/agents/acme-mule-developer.md`:
+
+```markdown
+---
+name: acme-mule-developer
+description: Implements a change in an ACME Mule 4 API, from its approved design to green MUnit tests. Does not merge or deploy.
+model: sonnet
+skills:
+  - engineering-profile:project-profile
+  - api-first:api-first-implementation
+  - api-contracts:api-contract
+  - mule-engineering:mule-app
+  - mule-engineering:dataweave
+  - mule-engineering:apikit
+  - mule-engineering:munit
+  - integration-patterns:integration-patterns
+  - resilience-patterns:resilience-patterns
+---
+
+You implement one change from its approved design. Read the project's AGENTS.md first.
+Build with `mvn clean test` and report every requirement, as api-first-implementation says.
+Open the pull request with ACME's template; never merge it.
+```
+
+The skills bring the practices and the project's rules; the agent adds what is yours: the model, its tools, and where its work stops.
+
+- **devFoundry must be installed too.** A skill missing from `skills:` is skipped with only a warning in the debug log, so the agent would run without the practices.
+- **The prompt is not a gate.** "Never merge" in the prompt is an instruction, not a block. To enforce it, give the agent a `tools` list, or use permissions and branch protection.
+- **Agents from a plugin have limits.** They ignore `permissionMode`, `hooks` and `mcpServers`; keep the agent in `.claude/agents/` when it needs those.
+
+### Process
+
+A process is the order of a change and its gates, for example: proposal, design review, implementation, code review, approval, merge, delivery. Write it as a skill of your own (`acme-change-flow`), and at each step name the devFoundry skill or the agent that does it: implementation is the `acme-mule-developer` agent (`acme-engineering:acme-mule-developer` when it comes from a plugin), the contract is `api-contracts:api-contract`, the design review checks the patterns with `integration-patterns` and `resilience-patterns`. devFoundry takes its requirements from wherever your process puts them (a spec-driven change, a `design.md`, requirement documents) and never asks for a process of its own.
+
+### Where the private layer lives
+
+Keep the agents and the process in a private repository with the same layout as this one: a `.claude-plugin/marketplace.json` and a plugin with `skills/` (the process) and `agents/`. Install it like devFoundry; the part after `@` is the `name` in your `marketplace.json`:
+
+```bash
+claude plugin marketplace add your-company/engineering-private
+claude plugin install acme-engineering@acme
+```
+
+Claude Code reads a private repository with the git credentials already on the machine and never prompts:
+
+- **Over SSH:** the key must be loaded in `ssh-agent` and the host already in `known_hosts`.
+- **Over HTTPS:** a stored credential is needed. On GitHub, run `gh auth login`, then `gh auth setup-git`.
+
+Installing the plugin does not bring the rules into a project. Keep each rules pack in a repository (or folder) of its own, with `pack.yaml` at its root. Each project brings it in as `engineering/packs/<name>/`, by git submodule or by a copy pinned to a version, and lists it in its profile. The resolver refuses a pack outside the project.
 
 ## Stack names
 
